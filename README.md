@@ -32,7 +32,7 @@ without adopting a full DCIM platform.
 
 ## Quick start
 
-The fastest evaluation path uses the published v1.2.1 container images:
+The fastest evaluation path uses the published v1.2.2 container images:
 
 ```sh
 cp .env.example .env

@@ -329,6 +329,12 @@ import/export (ADR 0023), and the machine API + CLI (ADR 0024) are all merged.
   import/sync time (`device.link.auto`). The SNMPv3 engine ID stays out of scope
   until SNMPv3 support exists (the stack is v2c-only).
 
+## Maintenance hardening (shipped in v1.2.2)
+
+The November maintenance release is recorded in [Changelog](../CHANGELOG.md#122---2026-11-17).
+It preserves schema migration 23, `/api/v1` and scanner protocol `v1`. Compatible
+CSS patches are partial remediation; the major migration below remains open.
+
 ## Planning backlog — 36 items
 
 Updated 2026-11-17. This is the forward-looking backlog requested by the maintainer,

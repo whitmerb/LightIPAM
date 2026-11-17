@@ -9,7 +9,7 @@ file** — a stale snapshot here is worse than none.
 
 ## Current release
 
-- **Latest release: v1.2.1** (see [`CHANGELOG.md`](../../CHANGELOG.md)). Tagged
+- **Latest release: v1.2.2** (see [`CHANGELOG.md`](../../CHANGELOG.md)). Tagged
   releases publish multi-arch app + scanner images to GHCR.
 - Database schema is at **migration 23** (additive; migrations 1–23 applied in
   order). Migrations 22–23 (device hardware links, ADR 0029; SNMP hardware
@@ -45,6 +45,10 @@ file** — a stale snapshot here is worse than none.
 - **Post-1.2 (shipped in v1.2.1):** security and audit hardening from the
   2026-07-10 review, consistent API error responses, and a pinned published-image
   Compose installation path. No migration or scanner-protocol change.
+- **Maintenance hardening (shipped in v1.2.2):** identity/recovery, request limits,
+  concurrent containment, deployment/tooling and documentation fixes; see the
+  [changelog](../../CHANGELOG.md#122---2026-11-17). Schema remains 23; API/protocol
+  versions are unchanged. The CSS major migration remains open.
 
 ## Known limitations
 
