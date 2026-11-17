@@ -10,6 +10,11 @@ migration, requires a major-version bump.
 
 ## [Unreleased]
 
+### Changed
+
+- CI now runs PostgreSQL store integration tests against an ephemeral PostgreSQL
+  16 service, covering database regressions that previously skipped by default.
+
 ### Fixed
 
 - OIDC login no longer replaces an existing account's subject when another
