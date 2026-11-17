@@ -24,10 +24,15 @@ FROM users WHERE oidc_subject = $1`, subject).Scan(
 	return u, nil
 }
 
-// LinkOIDCSubject binds an IdP subject to an existing local user.
+// LinkOIDCSubject binds an IdP subject to an unlinked user, or confirms the
+// existing binding. A different subject cannot replace an existing binding.
 func (s *Store) LinkOIDCSubject(ctx context.Context, userID, subject string) error {
-	if _, err := s.db.Exec(ctx, `UPDATE users SET oidc_subject = $2, updated_at = now() WHERE id = $1`, userID, subject); err != nil {
+	tag, err := s.db.Exec(ctx, `UPDATE users SET oidc_subject = $2, updated_at = now() WHERE id = $1 AND (oidc_subject IS NULL OR oidc_subject = $2)`, userID, subject)
+	if err != nil {
 		return fmt.Errorf("link oidc subject: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("link oidc subject: user missing or already linked to a different subject")
 	}
 	return nil
 }
