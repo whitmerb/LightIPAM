@@ -133,8 +133,9 @@ the agent.
 - **OIDC SSO (done, ADR 0018).** Authorization-code + PKCE via `go-oidc`/`oauth2`;
   state/PKCE/nonce in a sealed cookie, ID-token + nonce verified. `users.oidc_subject`
   (migration 16) binds the IdP subject to a local user; login resolves by subject, then
-  username (linking), then optionally auto-provisions a read-only viewer. Configured on
-  the admin **Authentication** settings tab with the client secret sealed at rest.
+  username (linking only an unlinked account), then optionally auto-provisions a
+  read-only viewer. Configured on the admin **Authentication** settings tab with the
+  client secret sealed at rest.
 - **MFA (TOTP) (done, ADR 0018).** RFC 6238 TOTP (stdlib, RFC-vector tested) with
   single-use recovery codes; the per-user secret is sealed at rest (migration 15). Login
   gains a signed pending-MFA second step; self-service enrollment (QR + manual key),
