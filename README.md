@@ -74,7 +74,7 @@ every NetBox or phpIPAM deployment.
 - Same-physical-device links for multi-homed hardware, with operator-confirmed
   suggestions and optional exact SNMP chassis-serial matching.
 - Validated, all-or-nothing CSV import/export, including a NetBox-compatible
-  format.
+  format. CSV imports accept files up to 1 MiB.
 
 ### Identity, security, and operations
 

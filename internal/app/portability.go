@@ -3,6 +3,7 @@ package app
 import (
 	"encoding/csv"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -371,10 +372,53 @@ func (a *App) importIndex(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// Limit CSV input and both transport formats before parsing or CSRF verification.
+// A browser can turn each LF into CRLF and percent-encode both bytes (6x).
+const (
+	maxImportCSVBytes    = 1 << 20
+	maxImportUploadBytes = maxImportCSVBytes + 64<<10
+	maxImportApplyBytes  = 6*maxImportCSVBytes + 64<<10
+)
+
+func normalizeImportCSV(s string) string {
+	s = strings.ReplaceAll(s, "\r\n", "\n")
+	return strings.ReplaceAll(s, "\r", "\n")
+}
+
+func parseImportForm(w http.ResponseWriter, r *http.Request, multipart bool) bool {
+	limit := int64(maxImportApplyBytes)
+	if multipart {
+		limit = maxImportUploadBytes
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, limit)
+	var err error
+	if multipart {
+		err = r.ParseMultipartForm(maxImportUploadBytes)
+	} else {
+		err = r.ParseForm()
+	}
+	if err != nil {
+		var tooLarge *http.MaxBytesError
+		if errors.As(err, &tooLarge) {
+			http.Error(w, "Import request is too large. CSV files must be at most 1 MiB.", http.StatusRequestEntityTooLarge)
+		} else {
+			http.Error(w, "Unable to read import form.", http.StatusBadRequest)
+		}
+		return false
+	}
+	return true
+}
+
 func (a *App) importPreview(w http.ResponseWriter, r *http.Request) {
 	session, ok := a.requireSession(w, r)
 	if !ok {
 		return
+	}
+	if !parseImportForm(w, r, true) {
+		return
+	}
+	if r.MultipartForm != nil {
+		defer r.MultipartForm.RemoveAll()
 	}
 	if !a.verifySessionCSRF(r, session) {
 		http.Error(w, "Invalid form token", http.StatusForbidden)
@@ -383,10 +427,6 @@ func (a *App) importPreview(w http.ResponseWriter, r *http.Request) {
 	entity := r.PathValue("type")
 	if !validImportType(entity) {
 		http.NotFound(w, r)
-		return
-	}
-	if err := r.ParseMultipartForm(8 << 20); err != nil {
-		http.Error(w, "Unable to read upload", http.StatusBadRequest)
 		return
 	}
 	file, _, err := r.FormFile("file")
@@ -401,13 +441,20 @@ func (a *App) importPreview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, _ := a.validateImport(r, entity, string(body), normalizeImportFormat(r.FormValue("format")))
+	if len(body) > maxImportCSVBytes {
+		a.renderImportError(w, session, "CSV files must be at most 1 MiB.")
+		return
+	}
+	result, _ := a.validateImport(r, entity, normalizeImportCSV(string(body)), normalizeImportFormat(r.FormValue("format")))
 	a.renderImportPreview(w, session, result)
 }
 
 func (a *App) importApply(w http.ResponseWriter, r *http.Request) {
 	session, ok := a.requireSession(w, r)
 	if !ok {
+		return
+	}
+	if !parseImportForm(w, r, false) {
 		return
 	}
 	if !a.verifySessionCSRF(r, session) {
@@ -419,12 +466,11 @@ func (a *App) importApply(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Invalid form", http.StatusBadRequest)
+	body := normalizeImportCSV(r.FormValue("csv"))
+	if len(body) > maxImportCSVBytes {
+		http.Error(w, "CSV files must be at most 1 MiB.", http.StatusRequestEntityTooLarge)
 		return
 	}
-
-	body := r.FormValue("csv")
 	result, payload := a.validateImport(r, entity, body, normalizeImportFormat(r.FormValue("format")))
 	// Re-validate before applying: never partially apply an invalid file.
 	if result.FileError != "" || result.Errors > 0 {
