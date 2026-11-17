@@ -10,6 +10,11 @@ migration, requires a major-version bump.
 
 ## [Unreleased]
 
+### Changed
+
+- CI now runs PostgreSQL store integration tests against an ephemeral PostgreSQL
+  16 service, covering database regressions that previously skipped by default.
+
 ### Fixed
 
 - Device and address deletion now stays consistent across the Devices and
