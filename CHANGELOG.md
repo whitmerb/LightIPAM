@@ -24,6 +24,8 @@ migration, requires a major-version bump.
 - Webhook deliveries no longer follow redirects; 3xx responses are recorded as failures.
 - OIDC login no longer replaces an existing account's subject when another
   identity presents the same username.
+- MFA recovery codes remain single-use when concurrent verification requests
+  submit the same code.
 - Device and address deletion now stays consistent across the Devices and
   Subnets views, and a deleted imported host returns to the discovery review
   queue as a new, importable observation when a later scan finds it again.
