@@ -14,9 +14,12 @@ the only service that receives `NET_RAW`.
 | Source development | `compose.yaml` | Built from the local checkout |
 | Add discovery | Either file with `--profile scanner` | Matching app and scanner versions |
 
-The current stable release is **v1.2.1**. The release workflow publishes
-`ghcr.io/devsealware/lightipam` and
-`ghcr.io/devsealware/lightipam-scanner` for amd64 and arm64.
+The current stable release is **v1.2.1**. Following the repository transfer to
+`whitmerb/LightIPAM`, the release images are published under the same owner:
+`ghcr.io/whitmerb/lightipam` and
+`ghcr.io/whitmerb/lightipam-scanner` for amd64 and arm64. Both v1.2.1 images
+are available there. The release workflow derives the image owner from the
+repository owner. GitHub repository redirects do not redirect GHCR image pulls.
 
 ## Prerequisites
 
@@ -147,6 +150,11 @@ reviewed repository update; setting `LIGHTIPAM_VERSION` in `.env` overrides it.
 ## Upgrade
 
 1. Read the [changelog](../CHANGELOG.md) for migrations and behavior changes.
+   If your Compose file still refers to `ghcr.io/devsealware/`, update it to the
+   current `compose.release.yaml` (or change both image owners to `whitmerb`).
+   Keep the existing Compose project name and volume names so the deployment
+   reuses its database and backups. You can keep `LIGHTIPAM_VERSION=1.2.1`
+   while changing only the image namespace.
 2. Create and copy off-host a fresh [database backup](BACKUP_RESTORE.md).
 3. Change `LIGHTIPAM_VERSION` in `.env` to the new exact release tag without the
    leading `v`.

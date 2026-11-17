@@ -101,7 +101,7 @@ WHERE id = (
 	SELECT id FROM user_recovery_codes
 	WHERE user_id = $1 AND code_hash = $2 AND used_at IS NULL
 	LIMIT 1
-)`, userID, codeHash)
+) AND used_at IS NULL`, userID, codeHash)
 	if err != nil {
 		return false, fmt.Errorf("consume recovery code: %w", err)
 	}

@@ -137,8 +137,14 @@ func (s *Store) ImportAddresses(ctx context.Context, rows []AddressImport) error
 		return fmt.Errorf("begin address import: %w", err)
 	}
 	defer tx.Rollback(ctx)
+	if err := lockSubnetContainment(ctx, tx, false); err != nil {
+		return err
+	}
 
 	for _, r := range rows {
+		if err := validateAddressSubnet(ctx, tx, r.SubnetID, r.Address); err != nil {
+			return fmt.Errorf("import address %s: %w", r.Address, err)
+		}
 		id, err := auth.RandomToken(18)
 		if err != nil {
 			return err

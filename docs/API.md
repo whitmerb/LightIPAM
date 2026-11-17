@@ -43,6 +43,9 @@ log and trigger change webhooks just like the web UI.
 | PUT | `/api/v1/devices/{id}` | admin | Update a device. |
 | DELETE | `/api/v1/devices/{id}` | admin | Delete a device. |
 
+Subnet CIDR updates are rejected when they would exclude existing addresses; move or
+remove those addresses before changing the CIDR.
+
 `address` accepts a bare IPv4 host; the containing subnet must already exist. `state` is
 `available`/`reserved`/`assigned`/`deprecated`/`conflict` (defaults to `assigned`).
 Errors return `{"error": "..."}` with an appropriate status (`400` validation, `401`

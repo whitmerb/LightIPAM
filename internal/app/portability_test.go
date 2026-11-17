@@ -3,7 +3,12 @@ package app
 import (
 	"bytes"
 	"encoding/csv"
+	"io"
+	"mime/multipart"
+	"net/http/httptest"
 	"net/netip"
+	"net/url"
+	"strings"
 	"testing"
 )
 
@@ -169,5 +174,90 @@ func TestParseCSVStripsBOMAndHeader(t *testing.T) {
 	}
 	if len(records) != 1 || records[0][1] != "192.168.10.0/24" {
 		t.Fatalf("records wrong: %#v", records)
+	}
+}
+
+func TestImportApplyFormEncodedBoundary(t *testing.T) {
+	// Browsers normalize textarea newlines to CRLF before URL-encoding them.
+	csv := strings.Repeat("\r\n", maxImportCSVBytes)
+	body := url.Values{"csrf_token": {"token"}, "csv": {csv}, "format": {"lightipam"}}.Encode()
+	r := httptest.NewRequest("POST", "/import/devices/apply", strings.NewReader(body))
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
+	if !parseImportForm(w, r, false) {
+		t.Fatalf("valid encoded boundary rejected: %d %s", w.Code, w.Body.String())
+	}
+	if got := len(normalizeImportCSV(r.FormValue("csv"))); got != maxImportCSVBytes {
+		t.Fatalf("normalized CSV length = %d", got)
+	}
+}
+
+func TestImportRequestBodyLimit(t *testing.T) {
+	r := httptest.NewRequest("POST", "/import/devices/apply", strings.NewReader(strings.Repeat("x", maxImportApplyBytes+1)))
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
+	if parseImportForm(w, r, false) || w.Code != 413 {
+		t.Fatalf("oversized request: %d %s", w.Code, w.Body.String())
+	}
+}
+
+func TestImportMultipartBoundaries(t *testing.T) {
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+	if err := writer.WriteField("csrf_token", "token"); err != nil {
+		t.Fatal(err)
+	}
+	if err := writer.WriteField("format", "lightipam"); err != nil {
+		t.Fatal(err)
+	}
+	file, err := writer.CreateFormFile("file", "devices.csv")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := io.WriteString(file, strings.Repeat("x", maxImportCSVBytes)); err != nil {
+		t.Fatal(err)
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatal(err)
+	}
+	r := httptest.NewRequest("POST", "/import/devices", &body)
+	r.Header.Set("Content-Type", writer.FormDataContentType())
+	w := httptest.NewRecorder()
+	if !parseImportForm(w, r, true) {
+		t.Fatalf("valid multipart rejected: %d %s", w.Code, w.Body.String())
+	}
+	defer r.MultipartForm.RemoveAll()
+	if r.FormValue("csrf_token") != "token" || r.FormValue("format") != "lightipam" {
+		t.Fatal("multipart fields lost")
+	}
+	uploaded, _, err := r.FormFile("file")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer uploaded.Close()
+	contents, err := io.ReadAll(uploaded)
+	if err != nil || len(contents) != maxImportCSVBytes {
+		t.Fatalf("file length %d, error %v", len(contents), err)
+	}
+
+	// Include a valid part header so the multipart reader consumes the body.
+	oversized := httptest.NewRequest("POST", "/import/devices", strings.NewReader("--test\r\nContent-Disposition: form-data; name=\"file\"; filename=\"x\"\r\n\r\n"+strings.Repeat("x", maxImportUploadBytes)+"\r\n--test--\r\n"))
+	oversized.Header.Set("Content-Type", "multipart/form-data; boundary=test")
+	w = httptest.NewRecorder()
+	if parseImportForm(w, oversized, true) || w.Code != 413 {
+		t.Fatalf("oversized multipart: %d %s", w.Code, w.Body.String())
+	}
+
+	malformed := httptest.NewRequest("POST", "/import/devices", strings.NewReader("invalid multipart"))
+	malformed.Header.Set("Content-Type", "multipart/form-data; boundary=test")
+	w = httptest.NewRecorder()
+	if parseImportForm(w, malformed, true) || w.Code != 400 {
+		t.Fatalf("malformed multipart: %d %s", w.Code, w.Body.String())
+	}
+}
+
+func TestNormalizeImportCSVMixedNewlines(t *testing.T) {
+	if got := normalizeImportCSV("a\rb\r\nc\nd"); got != "a\nb\nc\nd" {
+		t.Fatalf("normalized = %q", got)
 	}
 }

@@ -385,7 +385,9 @@ In the UI an operator either:
   [`docs/SCANNER_AGENT.md`](SCANNER_AGENT.md#layer-2-discovery-mac-addresses-with-macvlan)).
 - **Dismisses** it: it is marked reviewed and will not resurface.
 
-Every import/dismiss is audited.
+Every import/dismiss is audited. A discovery import uses the current containing
+subnet, including when its CIDR is edited concurrently. An observation with no
+containing subnet remains in review.
 
 ### Subnet auto-create + Import all (ADR 0026)
 
