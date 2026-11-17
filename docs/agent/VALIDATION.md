@@ -18,6 +18,14 @@ test -z "$(gofmt -l internal cmd)"  # formatting must be clean (prints nothing o
 `gofmt -l internal cmd` lists any misformatted files; if it prints anything, run
 `gofmt -w` on those files. A clean tree is required.
 
+Store integration tests use PostgreSQL 16. Without
+`LIGHTIPAM_TEST_DATABASE_URL`, `go test ./...` skips those tests; a passing
+unit suite alone does not validate database behavior. To include them locally,
+set that variable to a disposable test database connection URL before running
+the same command. The test role must be able to create and drop schemas: each
+test migrates an isolated schema and drops it afterward. Do not use a production
+database.
+
 ## Tier 1 — container builds (Dockerfile / compose / dependency / UI-embed change)
 
 ```sh
@@ -85,11 +93,12 @@ race/concurrency regressions as well and report exactly which database tests ran
 ## CI
 
 `.github/workflows/ci.yml` runs Tier 0 plus both container builds on every pull
-request and on pushes to `main`. It does **not** publish images — publishing happens
-only in `.github/workflows/release.yml` when a `v*` tag is pushed. Keep local
+request and on pushes to `main`. Its Go test job starts an ephemeral PostgreSQL 16
+service and sets `LIGHTIPAM_TEST_DATABASE_URL`, so store integration tests run
+alongside the unit suite instead of being skipped. It does **not** publish images —
+publishing happens only in `.github/workflows/release.yml` when a `v*` tag is pushed. Keep local
 validation and CI in step: if you change the validation steps here, update the
-workflow too. PR/main CI provisions an ephemeral PostgreSQL 16 service and sets the
-test URL so store regressions execute. The release job does not yet provision it;
+workflow too. The release job does not yet provision a test database;
 extending release/full-stack coverage is [R01](../ROADMAP.md#r01).
 The release publisher is separate from CI; see [Releasing](../RELEASING.md).
 

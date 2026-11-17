@@ -62,6 +62,15 @@ admins trusting what they configure.
 
 ## Product Security Features
 
+### OIDC account linking
+
+SSO login first resolves the verified IdP subject. If it is not yet linked, a
+matching local username may be linked on first login; configure the IdP and
+username claim so only the intended identity can claim that username. Once
+linked, a different subject cannot replace the binding through login, even if
+its username matches. Changing identity providers or subjects requires a
+controlled administrative intervention to change the stored binding.
+
 Implemented controls:
 
 - Local admin bootstrap, user password change and administrative reset (no forced

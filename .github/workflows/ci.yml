@@ -21,6 +21,20 @@ jobs:
   build-test:
     name: Go build, vet, test, gofmt
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: lightipam_test
+          POSTGRES_PASSWORD: lightipam_test
+          POSTGRES_DB: lightipam_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U lightipam_test -d lightipam_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
 
@@ -47,6 +61,8 @@ jobs:
         run: go vet ./...
 
       - name: Go test
+        env:
+          LIGHTIPAM_TEST_DATABASE_URL: postgres://lightipam_test:lightipam_test@localhost:5432/lightipam_test?sslmode=disable
         run: go test ./...
 
       - name: gofmt (must be clean)

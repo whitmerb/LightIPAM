@@ -15,9 +15,13 @@ migration, requires a major-version bump.
 - Reconcile current product/security/operations documentation, add a product-neutral
   engineering handoff and release-publishing guide, and replace stale planning
   statements with a 36-item roadmap including the CSS toolchain migration.
+- CI now runs PostgreSQL store integration tests against an ephemeral PostgreSQL
+  16 service, covering database regressions that previously skipped by default.
 
 ### Fixed
 
+- OIDC login no longer replaces an existing account's subject when another
+  identity presents the same username.
 - Device and address deletion now stays consistent across the Devices and
   Subnets views, and a deleted imported host returns to the discovery review
   queue as a new, importable observation when a later scan finds it again.
