@@ -5,7 +5,7 @@
 
 # LightIPAM
 
-[![Release](https://img.shields.io/github/v/release/devSealWare/LightIPAM?sort=semver)](https://github.com/devSealWare/LightIPAM/releases)
+[![Release](https://img.shields.io/github/v/release/whitmerb/LightIPAM?sort=semver)](https://github.com/whitmerb/LightIPAM/releases)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
 **A lightweight, secure, self-hosted IP address management system for homelabs,
@@ -48,7 +48,7 @@ quick start uses plain HTTP; use a TLS-terminating reverse proxy and set
 [Installation](docs/INSTALLATION.md) · [Security](docs/SECURITY.md) ·
 [Architecture](docs/ARCHITECTURE.md) · [API and CLI](docs/API.md) ·
 [Roadmap](docs/ROADMAP.md) · [Changelog](CHANGELOG.md) ·
-[Releases](https://github.com/devSealWare/LightIPAM/releases)
+[Releases](https://github.com/whitmerb/LightIPAM/releases)
 
 ## Is LightIPAM for me?
 

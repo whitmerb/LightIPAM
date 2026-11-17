@@ -12,6 +12,8 @@ migration, requires a major-version bump.
 
 ### Fixed
 
+- Published-image Compose and installation links now use the verified
+  `whitmerb` repository and GHCR namespace following the repository transfer.
 - Device and address deletion now stays consistent across the Devices and
   Subnets views, and a deleted imported host returns to the discovery review
   queue as a new, importable observation when a later scan finds it again.
@@ -281,8 +283,8 @@ separate, optional scanner agent.
   into the binaries and reported on `/healthz`, in the startup log, and via
   `--version`.
 
-[Unreleased]: https://github.com/devSealWare/LightIPAM/compare/v1.2.1...HEAD
-[1.2.1]: https://github.com/devSealWare/LightIPAM/releases/tag/v1.2.1
-[1.2.0]: https://github.com/devSealWare/LightIPAM/releases/tag/v1.2.0
-[1.1.0]: https://github.com/devSealWare/LightIPAM/releases/tag/v1.1.0
-[1.0.0]: https://github.com/devSealWare/LightIPAM/releases/tag/v1.0.0
+[Unreleased]: https://github.com/whitmerb/LightIPAM/compare/v1.2.1...HEAD
+[1.2.1]: https://github.com/whitmerb/LightIPAM/releases/tag/v1.2.1
+[1.2.0]: https://github.com/whitmerb/LightIPAM/releases/tag/v1.2.0
+[1.1.0]: https://github.com/whitmerb/LightIPAM/releases/tag/v1.1.0
+[1.0.0]: https://github.com/whitmerb/LightIPAM/releases/tag/v1.0.0
