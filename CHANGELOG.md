@@ -17,6 +17,8 @@ migration, requires a major-version bump.
 
 ### Fixed
 
+- Refresh patched PostCSS, selector-parser, nanoid, and source-map packages in
+  the existing CSS build toolchain; generated CSS is unchanged.
 - Published-image Compose and installation links now use the verified
   `whitmerb` repository and GHCR namespace following the repository transfer.
 - Webhook deliveries no longer follow redirects; 3xx responses are recorded as failures.
@@ -291,8 +293,8 @@ separate, optional scanner agent.
   into the binaries and reported on `/healthz`, in the startup log, and via
   `--version`.
 
-[Unreleased]: https://github.com/whitmerb/LightIPAM/compare/v1.2.1...HEAD
-[1.2.1]: https://github.com/whitmerb/LightIPAM/releases/tag/v1.2.1
-[1.2.0]: https://github.com/whitmerb/LightIPAM/releases/tag/v1.2.0
-[1.1.0]: https://github.com/whitmerb/LightIPAM/releases/tag/v1.1.0
-[1.0.0]: https://github.com/whitmerb/LightIPAM/releases/tag/v1.0.0
+[Unreleased]: https://github.com/devSealWare/LightIPAM/compare/v1.2.1...HEAD
+[1.2.1]: https://github.com/devSealWare/LightIPAM/releases/tag/v1.2.1
+[1.2.0]: https://github.com/devSealWare/LightIPAM/releases/tag/v1.2.0
+[1.1.0]: https://github.com/devSealWare/LightIPAM/releases/tag/v1.1.0
+[1.0.0]: https://github.com/devSealWare/LightIPAM/releases/tag/v1.0.0
