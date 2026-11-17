@@ -18,6 +18,8 @@ migration, requires a major-version bump.
 ### Fixed
 
 - API writes reject trailing content and request bodies larger than 1 MiB.
+- Refresh patched PostCSS, selector-parser, nanoid, and source-map packages in
+  the existing CSS build toolchain; generated CSS is unchanged.
 - Webhook deliveries no longer follow redirects; 3xx responses are recorded as failures.
 - OIDC login no longer replaces an existing account's subject when another
   identity presents the same username.
