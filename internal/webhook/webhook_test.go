@@ -4,10 +4,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -61,6 +64,55 @@ func TestDispatcherSendSigned(t *testing.T) {
 	}
 	if !bytes.Equal(gotBody, body) {
 		t.Fatalf("body mismatch: got %s", gotBody)
+	}
+}
+
+func TestDispatcherDoesNotFollowRedirects(t *testing.T) {
+	sealer, err := secret.NewSealer(make([]byte, 32))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sealed, err := sealer.Seal("topsecret")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, status := range []int{301, 302, 303, 307, 308} {
+		t.Run(fmt.Sprint(status), func(t *testing.T) {
+			var hits atomic.Int32
+			target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { hits.Add(1) }))
+			defer target.Close()
+			var gotBody []byte
+			var gotSig string
+			redirector := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				gotBody, _ = io.ReadAll(r.Body)
+				gotSig = r.Header.Get("X-LightIPAM-Signature")
+				http.Redirect(w, r, target.URL, status)
+			}))
+			defer redirector.Close()
+			url := strings.Replace(redirector.URL, "127.0.0.1", "localhost", 1)
+			if _, err := ValidateURL(url); err != nil {
+				t.Fatalf("URL validation: %v", err)
+			}
+			d := quietDispatcher(sealer)
+			transport := redirector.Client().Transport.(*http.Transport).Clone()
+			transport.TLSClientConfig.ServerName = "example.com"
+			d.client.Transport = transport
+			event := Event{Type: "subnet.created", Category: CategoryIPAM, Timestamp: time.Now().UTC()}
+			body, err := json.Marshal(event)
+			if err != nil {
+				t.Fatal(err)
+			}
+			result := d.send(context.Background(), store.Webhook{ID: "w", URL: url, SecretSealed: sealed}, event, body)
+			if !bytes.Equal(gotBody, body) || gotSig != "sha256="+sign("topsecret", body) {
+				t.Errorf("initial request body or signature incorrect")
+			}
+			if hits.Load() != 0 {
+				t.Errorf("redirect target received %d requests", hits.Load())
+			}
+			if result.Status != "failed" || result.StatusCode != status || result.Error != fmt.Sprintf("endpoint returned HTTP %d", status) {
+				t.Errorf("result = %+v", result)
+			}
+		})
 	}
 }
 
