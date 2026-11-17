@@ -12,6 +12,8 @@ migration, requires a major-version bump.
 
 ### Fixed
 
+- Refresh patched PostCSS, selector-parser, nanoid, and source-map packages in
+  the existing CSS build toolchain; generated CSS is unchanged.
 - Device and address deletion now stays consistent across the Devices and
   Subnets views, and a deleted imported host returns to the discovery review
   queue as a new, importable observation when a later scan finds it again.
