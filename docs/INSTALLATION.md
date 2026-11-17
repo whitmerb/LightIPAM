@@ -14,12 +14,12 @@ the only service that receives `NET_RAW`.
 | Source development | `compose.yaml` | Built from the local checkout |
 | Add discovery | Either file with `--profile scanner` | Matching app and scanner versions |
 
-The current stable release is **v1.2.1**. Following the repository transfer to
+The current stable release is **v1.2.2**. Following the repository transfer to
 `whitmerb/LightIPAM`, the release images are published under the same owner:
 `ghcr.io/whitmerb/lightipam` and
-`ghcr.io/whitmerb/lightipam-scanner` for amd64 and arm64. Both v1.2.1 images
-are available there. The release workflow derives the image owner from the
-repository owner. GitHub repository redirects do not redirect GHCR image pulls.
+`ghcr.io/whitmerb/lightipam-scanner` for amd64 and arm64. The release workflow
+derives the image owner from the repository owner; verify the exact tag before
+deployment. GitHub repository redirects do not redirect GHCR image pulls.
 
 ## Prerequisites
 
@@ -137,9 +137,9 @@ production configuration.
 
 ## Image tags
 
-For the current stable tag `v1.2.1`, the release workflow publishes:
+For the current stable tag `v1.2.2`, the release workflow publishes:
 
-- `1.2.1` — exact release; recommended for production.
+- `1.2.2` — exact release; recommended for production.
 - `1.2` — moving minor-series tag; receives later 1.2.x releases.
 - `latest` — moving newest stable release.
 

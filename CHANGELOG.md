@@ -10,33 +10,41 @@ migration, requires a major-version bump.
 
 ## [Unreleased]
 
+## [1.2.2] - 2026-11-17
+
+A backward-compatible maintenance release covering identity and request hardening,
+concurrent inventory integrity, deployment reliability and documentation. There are
+no database migrations, breaking `/api/v1` changes or scanner-protocol changes;
+the schema remains at migration 23 and scanner protocol remains `v1`.
+
 ### Changed
 
-- Reconcile current product/security/operations documentation, add a product-neutral
-  engineering handoff and release-publishing guide, and replace stale planning
-  statements with a 36-item roadmap including the CSS toolchain migration.
+- Refreshed patched PostCSS, selector-parser, nanoid and source-map packages in
+  the existing CSS toolchain; generated CSS is unchanged. This is partial audit
+  remediation: 10 high findings remained on the picomatch path at the November 17
+  audit. The separate major toolchain migration is tracked as Roadmap R05.
 - CI now runs PostgreSQL store integration tests against an ephemeral PostgreSQL
   16 service, covering database regressions that previously skipped by default.
+- Reconciled product/security/operations documentation, added an engineering
+  handoff and release-publishing guide, and established a 36-item planning roadmap.
+- Documented functional branch naming, validation, reviewed PRs, authorized squash
+  merges and cleanup in the focused GitHub workflow skill.
 
 ### Fixed
 
-- API writes reject trailing content and request bodies larger than 1 MiB.
-- Refresh patched PostCSS, selector-parser, nanoid, and source-map packages in
-  the existing CSS build toolchain; generated CSS is unchanged.
-- Published-image Compose and installation links now use the verified
-  `whitmerb` repository and GHCR namespace following the repository transfer.
-- Webhook deliveries no longer follow redirects; 3xx responses are recorded as failures.
-- Subnet CIDR edits reject changes that would leave existing addresses outside the subnet, including concurrent imports and edits.
 - OIDC login no longer replaces an existing account's subject when another
   identity presents the same username.
-- MFA recovery codes remain single-use when concurrent verification requests
-  submit the same code.
-- Device and address deletion now stays consistent across the Devices and
-  Subnets views, and a deleted imported host returns to the discovery review
-  queue as a new, importable observation when a later scan finds it again.
-
-- CSV imports now enforce a consistent 1 MiB file limit at preview and apply,
-  with request limits that account for browser form encoding.
+- MFA recovery codes remain single-use under concurrent verification attempts.
+- Webhook deliveries refuse redirects; 3xx responses are recorded as failures.
+- API writes reject trailing content and request bodies larger than 1 MiB.
+- Subnet CIDR edits reject changes that would strand existing addresses, including
+  concurrent address edits, CSV imports and discovery imports.
+- CSV imports enforce a consistent 1 MiB file limit at preview and apply, with
+  transport limits that account for browser form encoding.
+- Device and address deletion stays consistent across Devices and Subnets views;
+  a deleted imported host returns as an importable observation on rediscovery.
+- Published-image Compose and installation links use the verified `whitmerb`
+  repository and GHCR namespace following the repository transfer.
 
 ## [1.2.1] - 2026-07-10
 
@@ -303,8 +311,9 @@ separate, optional scanner agent.
   into the binaries and reported on `/healthz`, in the startup log, and via
   `--version`.
 
-[Unreleased]: https://github.com/devSealWare/LightIPAM/compare/v1.2.1...HEAD
-[1.2.1]: https://github.com/devSealWare/LightIPAM/releases/tag/v1.2.1
-[1.2.0]: https://github.com/devSealWare/LightIPAM/releases/tag/v1.2.0
-[1.1.0]: https://github.com/devSealWare/LightIPAM/releases/tag/v1.1.0
-[1.0.0]: https://github.com/devSealWare/LightIPAM/releases/tag/v1.0.0
+[Unreleased]: https://github.com/whitmerb/LightIPAM/compare/v1.2.2...HEAD
+[1.2.2]: https://github.com/whitmerb/LightIPAM/releases/tag/v1.2.2
+[1.2.1]: https://github.com/whitmerb/LightIPAM/releases/tag/v1.2.1
+[1.2.0]: https://github.com/whitmerb/LightIPAM/releases/tag/v1.2.0
+[1.1.0]: https://github.com/whitmerb/LightIPAM/releases/tag/v1.1.0
+[1.0.0]: https://github.com/whitmerb/LightIPAM/releases/tag/v1.0.0
