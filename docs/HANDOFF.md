@@ -43,7 +43,7 @@ Read [Architecture](ARCHITECTURE.md), [Security](SECURITY.md),
 ## Recent hardening and remaining limits
 
 The November hardening covers OIDC binding replacement, webhook redirects, complete
-bounded JSON bodies, current-owner release images, compatible CSS dependency patches
+bounded JSON bodies, current-owner release images, compatible CSS dependency patches,
 concurrent subnet/address containment, single-use recovery codes under contention,
 consistent CSV import limits, and PostgreSQL regressions enabled in PR/main CI.
 The changelog is the canonical list.

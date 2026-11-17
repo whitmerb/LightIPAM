@@ -155,9 +155,12 @@ type Dispatcher struct {
 // NewDispatcher builds a Dispatcher. sealer may be nil (unsigned deliveries only).
 func NewDispatcher(st *store.Store, sealer *secret.Sealer, logger *slog.Logger) *Dispatcher {
 	return &Dispatcher{
-		store:    st,
-		sealer:   sealer,
-		client:   &http.Client{Timeout: 10 * time.Second},
+		store:  st,
+		sealer: sealer,
+		client: &http.Client{
+			Timeout:       10 * time.Second,
+			CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
+		},
 		logger:   logger,
 		instance: "light-ipam",
 	}

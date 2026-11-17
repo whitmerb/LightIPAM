@@ -263,7 +263,7 @@ is complete with online renewal explicitly deferred; Phase 6 is also complete be
 - **Machine API + CLI (done, ADR 0024).** A token-authenticated JSON API under
   `/api/v1` (subnets, addresses, devices CRUD + `whoami`) and a stdlib-only
   `lightipam-cli` that consumes it. Per-user **bearer API tokens** (migration 20, SHA-256
-  hashed, shown once, self-service on the Account page) carry the owner's role, so the
+  hashed, shown once, created by admins on their Account page) carry the owner's role, so the
   existing admin/viewer authorization applies: reads need any valid token, writes need an
   admin token. The API reuses the existing store methods + validation, is audited, and
   fans out to change webhooks like the UI. The user chose a CLI over a Terraform provider

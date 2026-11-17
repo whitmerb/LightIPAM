@@ -58,7 +58,9 @@ resolve hostnames or reject private RFC-1918 ranges — agents and some webhook
 receivers legitimately live on the private LAN. This is a first line of
 defense against a compromised or careless admin pointing either surface at
 cloud instance metadata or another internal-only service, not a substitute for
-admins trusting what they configure.
+admins trusting what they configure. Webhook delivery does not follow redirects;
+a 3xx response is recorded as a failed delivery, preventing a redirect from
+bypassing the configured URL guard.
 
 ## Product Security Features
 
