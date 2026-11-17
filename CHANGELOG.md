@@ -20,6 +20,7 @@ migration, requires a major-version bump.
 
 ### Fixed
 
+- API writes reject trailing content and request bodies larger than 1 MiB.
 - Refresh patched PostCSS, selector-parser, nanoid, and source-map packages in
   the existing CSS build toolchain; generated CSS is unchanged.
 - Published-image Compose and installation links now use the verified

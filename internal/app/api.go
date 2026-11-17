@@ -146,13 +146,23 @@ func apiError(w http.ResponseWriter, status int, msg string) {
 	writeJSON(w, status, map[string]string{"error": msg})
 }
 
-// decodeJSON reads a bounded JSON request body, rejecting unknown fields so a
-// typo in a client is reported rather than silently ignored.
+// decodeJSON accepts one JSON value within the body limit and rejects unknown fields.
 func decodeJSON(r *http.Request, v any) error {
-	dec := json.NewDecoder(io.LimitReader(r.Body, 1<<20))
+	body := &io.LimitedReader{R: r.Body, N: (1 << 20) + 1}
+	dec := json.NewDecoder(body)
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(v); err != nil {
 		return err
+	}
+	var extra any
+	if err := dec.Decode(&extra); err != io.EOF {
+		if err == nil {
+			return errors.New("multiple JSON values")
+		}
+		return err
+	}
+	if body.N == 0 {
+		return errors.New("JSON body exceeds 1 MiB")
 	}
 	return nil
 }
