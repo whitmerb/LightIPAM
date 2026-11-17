@@ -47,9 +47,8 @@ elevated scanner agent:
 - The app's **Scanning** tab therefore holds only **dispatch-time defaults** for jobs
   the app sends over mTLS (default scan type/mode, timeouts, rate cap, default
   targets) — not the agent's nmap/SNMP/DHCP credentials or capabilities.
-- App-managed **secrets** that do belong in settings (e.g. a future OIDC client
-  secret) must be **encrypted at rest** (Phase 5), never stored or rendered in
-  plaintext.
+- App-managed **secrets** that belong in settings (including the OIDC client
+  secret) must be **encrypted at rest**, never stored or rendered in plaintext.
 
 ## Tabs
 
@@ -65,7 +64,7 @@ elevated scanner agent:
 | **General** | Instance/display name, default site, table page size, date/time format, default theme (light/dark). | App | Planned |
 | **Scanning (nmap)** | App-side scan **dispatch defaults**: default scan type (Combined) and nmap depth mode (Light/Standard/Deep), per-type timeout defaults, optional rate/timing cap passed to nmap, default targets/allowlist hints, and the scheduler tick. **Agent-local** nmap/SNMP/DHCP credentials and raw-socket config stay on the agent. (A schedule's **run window** — time-of-day + weekdays + timezone, ADR 0021 — is **per-schedule** config on the schedule form, not a global setting here.) | App (dispatch defaults only) | Planned |
 | **Discovery** | How scan findings fold into the inventory. Ships the opt-in **auto-link on hardware serial match** toggle (gold-confidence device links at import time, default off, ADR 0030). Future: auto-import policy for trusted agents (today per-agent on the agent form), reconciliation/conflict handling, and review-queue retention. (The "when to mark a record stale" aging knob lives on the **Policy** tab, ADR 0020.) | App | **Partial** (ADR 0030) |
-| **Notifications** | Change webhooks: register outbound endpoints, subscribe each to event categories (IPAM / discovery / scan / security), optionally sign deliveries with a sealed HMAC secret, send a test, and review the recent delivery log. Driven by the audit log as the change feed. Future: alert thresholds. | App (secret sealed at rest) | **Done** (ADR 0022) |
+| **Notifications** | Change webhooks: register outbound endpoints, subscribe each to event categories (IPAM / discovery / scan / security), optionally sign deliveries with a sealed HMAC secret, send a test, and review the recent delivery log. Driven by the audit log as the change feed. Redirect responses fail delivery; configure the final HTTPS endpoint directly. Future: alert thresholds. | App (secret sealed at rest) | **Done** (ADR 0022) |
 | **Data & Audit** | Audit-log retention/export and the CSV / NetBox import-export entry points (CSV **and** NetBox import/export both exist on the Import / Export page, ADR 0016 + 0023). | App | Partial (import/export exists) |
 
 > Per-user **Account** (`/account`, all roles): password change, two-factor (TOTP)
