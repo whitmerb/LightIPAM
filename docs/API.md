@@ -40,6 +40,9 @@ log and trigger change webhooks just like the web UI.
 | PUT | `/api/v1/devices/{id}` | admin | Update a device. |
 | DELETE | `/api/v1/devices/{id}` | admin | Delete a device. |
 
+Request bodies must contain exactly one JSON object and be at most 1 MiB, including
+whitespace. Unknown fields and malformed or trailing content return `400`.
+
 `address` accepts a bare IPv4 host; the containing subnet must already exist. `state` is
 `available`/`reserved`/`assigned`/`deprecated`/`conflict` (defaults to `assigned`).
 Errors return `{"error": "..."}` with an appropriate status (`400` validation, `401`
