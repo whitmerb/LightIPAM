@@ -12,6 +12,7 @@ migration, requires a major-version bump.
 
 ### Fixed
 
+- Subnet CIDR edits reject changes that would leave existing addresses outside the subnet, including concurrent imports and edits.
 - Device and address deletion now stays consistent across the Devices and
   Subnets views, and a deleted imported host returns to the discovery review
   queue as a new, importable observation when a later scan finds it again.

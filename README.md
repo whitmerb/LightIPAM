@@ -68,7 +68,8 @@ every NetBox or phpIPAM deployment.
 ### Inventory and data management
 
 - Sparse IPv4 subnet and address records with global overlap prevention,
-  `/31` and `/32` support, status workflows, VLAN metadata, and utilization.
+  `/31` and `/32` support, status workflows, VLAN metadata, and utilization. Subnet
+  CIDR edits must continue to contain their existing addresses.
 - Device and MAC tracking, best-effort OUI vendor lookup, tags, custom fields,
   global search, bulk editing, and selectable table columns.
 - Same-physical-device links for multi-homed hardware, with operator-confirmed
