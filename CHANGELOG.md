@@ -17,8 +17,10 @@ migration, requires a major-version bump.
 
 ### Fixed
 
-- Subnet CIDR edits reject changes that would leave existing addresses outside the subnet, including concurrent imports and edits.
+- Refresh patched PostCSS, selector-parser, nanoid, and source-map packages in
+  the existing CSS build toolchain; generated CSS is unchanged.
 - Webhook deliveries no longer follow redirects; 3xx responses are recorded as failures.
+- Subnet CIDR edits reject changes that would leave existing addresses outside the subnet, including concurrent imports and edits.
 - OIDC login no longer replaces an existing account's subject when another
   identity presents the same username.
 - Device and address deletion now stays consistent across the Devices and
