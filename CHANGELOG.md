@@ -12,6 +12,8 @@ migration, requires a major-version bump.
 
 ### Fixed
 
+- Webhook deliveries no longer follow redirects; 3xx responses are recorded as failures.
+
 - Device and address deletion now stays consistent across the Devices and
   Subnets views, and a deleted imported host returns to the discovery review
   queue as a new, importable observation when a later scan finds it again.
