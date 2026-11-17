@@ -19,6 +19,8 @@ migration, requires a major-version bump.
 
 - Refresh patched PostCSS, selector-parser, nanoid, and source-map packages in
   the existing CSS build toolchain; generated CSS is unchanged.
+- Published-image Compose and installation links now use the verified
+  `whitmerb` repository and GHCR namespace following the repository transfer.
 - Webhook deliveries no longer follow redirects; 3xx responses are recorded as failures.
 - OIDC login no longer replaces an existing account's subject when another
   identity presents the same username.

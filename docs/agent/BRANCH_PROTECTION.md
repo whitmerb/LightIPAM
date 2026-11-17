@@ -33,7 +33,7 @@ repository settings.
 
 ```sh
 # Example only — adjust the required check names to match the CI job names.
-gh api -X PUT repos/devSealWare/LightIPAM/branches/main/protection \
+gh api -X PUT repos/whitmerb/LightIPAM/branches/main/protection \
   -H "Accept: application/vnd.github+json" \
   -f "required_pull_request_reviews[required_approving_review_count]=1" \
   -F "required_status_checks[strict]=true" \
