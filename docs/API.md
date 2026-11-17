@@ -43,6 +43,9 @@ log and trigger change webhooks just like the web UI.
 Request bodies must contain exactly one JSON object and be at most 1 MiB, including
 whitespace. Unknown fields and malformed or trailing content return `400`.
 
+Subnet CIDR updates are rejected when they would exclude existing addresses; move or
+remove those addresses before changing the CIDR.
+
 `address` accepts a bare IPv4 host; the containing subnet must already exist. `state` is
 `available`/`reserved`/`assigned`/`deprecated`/`conflict` (defaults to `assigned`).
 Errors return `{"error": "..."}` with an appropriate status (`400` validation, `401`

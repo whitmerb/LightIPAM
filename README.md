@@ -5,7 +5,7 @@
 
 # LightIPAM
 
-[![Release](https://img.shields.io/github/v/release/devSealWare/LightIPAM?sort=semver)](https://github.com/devSealWare/LightIPAM/releases)
+[![Release](https://img.shields.io/github/v/release/whitmerb/LightIPAM?sort=semver)](https://github.com/whitmerb/LightIPAM/releases)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
 **A lightweight, secure, self-hosted IP address management system for homelabs,
@@ -48,7 +48,7 @@ quick start uses plain HTTP; use a TLS-terminating reverse proxy and set
 [Installation](docs/INSTALLATION.md) · [Security](docs/SECURITY.md) ·
 [Architecture](docs/ARCHITECTURE.md) · [API and CLI](docs/API.md) ·
 [Roadmap](docs/ROADMAP.md) · [Changelog](CHANGELOG.md) ·
-[Releases](https://github.com/devSealWare/LightIPAM/releases)
+[Releases](https://github.com/whitmerb/LightIPAM/releases)
 
 ## Is LightIPAM for me?
 
@@ -68,13 +68,14 @@ every NetBox or phpIPAM deployment.
 ### Inventory and data management
 
 - Sparse IPv4 subnet and address records with global overlap prevention,
-  `/31` and `/32` support, status workflows, VLAN metadata, and utilization.
+  `/31` and `/32` support, status workflows, VLAN metadata, and utilization. Subnet
+  CIDR edits must continue to contain their existing addresses.
 - Device and MAC tracking, best-effort OUI vendor lookup, tags, custom fields,
   global search, bulk editing, and selectable table columns.
 - Same-physical-device links for multi-homed hardware, with operator-confirmed
   suggestions and optional exact SNMP chassis-serial matching.
 - Validated, all-or-nothing CSV import/export, including a NetBox-compatible
-  format.
+  format. CSV imports accept files up to 1 MiB.
 
 ### Identity, security, and operations
 

@@ -2,10 +2,13 @@ package app
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/devSealWare/LightIPAM/internal/store"
 )
 
 // TestRegisterAPIRoutesDoesNotConflictWithUICatchAll guards against the panic
@@ -128,5 +131,12 @@ func TestDecodeJSONBody(t *testing.T) {
 				t.Fatalf("decodeJSON() error = %v, want valid = %v", err, tc.valid)
 			}
 		})
+	}
+}
+
+func TestSubnetErrorContainsAddresses(t *testing.T) {
+	msg := subnetError(errors.Join(errors.New("update"), store.ErrSubnetContainsAddresses))
+	if !strings.Contains(msg, "Move or remove") {
+		t.Fatalf("message is not actionable: %q", msg)
 	}
 }

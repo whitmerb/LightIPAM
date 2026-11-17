@@ -20,12 +20,20 @@ migration, requires a major-version bump.
 - API writes reject trailing content and request bodies larger than 1 MiB.
 - Refresh patched PostCSS, selector-parser, nanoid, and source-map packages in
   the existing CSS build toolchain; generated CSS is unchanged.
+- Published-image Compose and installation links now use the verified
+  `whitmerb` repository and GHCR namespace following the repository transfer.
 - Webhook deliveries no longer follow redirects; 3xx responses are recorded as failures.
+- Subnet CIDR edits reject changes that would leave existing addresses outside the subnet, including concurrent imports and edits.
 - OIDC login no longer replaces an existing account's subject when another
   identity presents the same username.
+- MFA recovery codes remain single-use when concurrent verification requests
+  submit the same code.
 - Device and address deletion now stays consistent across the Devices and
   Subnets views, and a deleted imported host returns to the discovery review
   queue as a new, importable observation when a later scan finds it again.
+
+- CSV imports now enforce a consistent 1 MiB file limit at preview and apply,
+  with request limits that account for browser form encoding.
 
 ## [1.2.1] - 2026-07-10
 

@@ -5,7 +5,7 @@ It intentionally **does not** restate project status — that would rot. The can
 files carry the current truth; this prompt just points at them.
 
 ```text
-You are working in the GitHub repository devSealWare/LightIPAM.
+You are working in the GitHub repository whitmerb/LightIPAM.
 
 Read AGENTS.md first — it is the canonical cross-agent contract (project identity,
 architecture and security invariants, workflow, validation, and PR rules). Then read,

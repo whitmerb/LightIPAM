@@ -1770,6 +1770,9 @@ func deviceFormFromDevice(device store.Device) map[string]string {
 }
 
 func subnetError(err error) string {
+	if errors.Is(err, store.ErrSubnetContainsAddresses) {
+		return "That subnet change would exclude existing addresses. Move or remove those addresses first."
+	}
 	if errors.Is(err, store.ErrOverlap) {
 		return "That subnet overlaps an existing subnet. Overlapping subnets are globally blocked."
 	}
