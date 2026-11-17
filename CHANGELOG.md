@@ -17,14 +17,17 @@ migration, requires a major-version bump.
 
 ### Fixed
 
-- CSV imports now enforce a consistent 1 MiB file limit at preview and apply,
-  with request limits that account for browser form encoding.
+- Refresh patched PostCSS, selector-parser, nanoid, and source-map packages in
+  the existing CSS build toolchain; generated CSS is unchanged.
 - Webhook deliveries no longer follow redirects; 3xx responses are recorded as failures.
 - OIDC login no longer replaces an existing account's subject when another
   identity presents the same username.
 - Device and address deletion now stays consistent across the Devices and
   Subnets views, and a deleted imported host returns to the discovery review
   queue as a new, importable observation when a later scan finds it again.
+
+- CSV imports now enforce a consistent 1 MiB file limit at preview and apply,
+  with request limits that account for browser form encoding.
 
 ## [1.2.1] - 2026-07-10
 
