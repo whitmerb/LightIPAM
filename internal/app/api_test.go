@@ -105,6 +105,35 @@ func TestAddressReqToInput(t *testing.T) {
 
 func ptr(v int) *int { return &v }
 
+func TestDecodeJSONBody(t *testing.T) {
+	const limit = 1 << 20
+	object := `{"name":"router"}`
+	cases := []struct {
+		name  string
+		body  string
+		valid bool
+	}{
+		{"object and whitespace", object + " \n\t", true},
+		{"trailing JSON", object + ` {"name":"other"}`, false},
+		{"trailing junk", object + " junk", false},
+		{"exact limit", object + strings.Repeat(" ", limit-len(object)), true},
+		{"oversized trailing whitespace", object + strings.Repeat(" ", limit-len(object)+1), false},
+		{"oversized object", `{"name":"` + strings.Repeat("x", limit) + `"}`, false},
+		{"truncated JSON", `{"name":`, false},
+		{"unknown field", `{"name":"router","unknown":true}`, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			r := httptest.NewRequest(http.MethodPost, "/api/v1/devices", strings.NewReader(tc.body))
+			var req deviceReq
+			err := decodeJSON(r, &req)
+			if (err == nil) != tc.valid {
+				t.Fatalf("decodeJSON() error = %v, want valid = %v", err, tc.valid)
+			}
+		})
+	}
+}
+
 func TestSubnetErrorContainsAddresses(t *testing.T) {
 	msg := subnetError(errors.Join(errors.New("update"), store.ErrSubnetContainsAddresses))
 	if !strings.Contains(msg, "Move or remove") {

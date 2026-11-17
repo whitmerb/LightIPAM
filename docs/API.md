@@ -40,6 +40,9 @@ log and trigger change webhooks just like the web UI.
 | PUT | `/api/v1/devices/{id}` | admin | Update a device. |
 | DELETE | `/api/v1/devices/{id}` | admin | Delete a device. |
 
+Request bodies must contain exactly one JSON object and be at most 1 MiB, including
+whitespace. Unknown fields and malformed or trailing content return `400`.
+
 Subnet CIDR updates are rejected when they would exclude existing addresses; move or
 remove those addresses before changing the CIDR.
 
