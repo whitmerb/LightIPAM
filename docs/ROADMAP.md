@@ -160,34 +160,39 @@ the agent.
 Light IPAM should be **highly configurable from the UI**, not just from environment
 variables. The tabbed **Settings** page introduced with session hardening (ADR 0017)
 is the home for that, backed by the runtime `app_settings` store (env values seed the
-boot defaults). The **Security** tab is done; the rest below are planned. Each
-runtime-tunable tab follows the same pattern — a pure, unit-tested form validator,
-values cached and refreshed on save, and an audited `settings.<tab>.updated` event.
+boot defaults). The **Security** tab and several others below have shipped; the list
+includes both implemented tabs and remaining planned work. Each runtime-tunable tab
+follows the same pattern — a pure, unit-tested form validator, values cached and
+refreshed on save, and an audited `settings.<tab>.updated` event.
 The full design, the per-tab field list, and the **agent-secret boundary** (SNMP
 communities, nmap egress pinning, DHCP lease paths, and the agent allowlist stay on
 the agent, never in the app DB or this panel) live in **`docs/SETTINGS.md`**.
 
-Planned tabs (sequenced with the phases that unlock them):
+Settings tabs and planned additions (sequenced with the phases that unlock them):
 
 - **Security** — login lockout, session timeouts, "log out everywhere" behavior,
   active-session review. **Done** (ADR 0017). Future fields: password policy,
   secure-cookie enforcement, MFA/OIDC toggles.
 - **General** — instance name, default site, table page size, date/time format,
-  default theme.
+  default theme. Planned.
 - **Users & Roles** — manage accounts and admin vs. read-only operator (this phase's
-  "roles beyond the single admin" item).
-- **Authentication** — OIDC SSO and MFA (TOTP) configuration (this phase's SSO/MFA
-  items); the OIDC client secret is sealed (encrypted at rest).
+  "roles beyond the single admin" item). **Done** (ADR 0018).
+- **Authentication** — OIDC SSO configuration; MFA (TOTP) enrollment is on the
+  per-user Account page. **Done** (ADR 0018); the OIDC client secret is sealed at rest.
+- **Policy** — policy and health-check settings, including stale-record thresholds.
+  **Done** (ADR 0020).
 - **Scanning (nmap)** — app-side scan **dispatch defaults**: default scan type/mode,
   per-type timeouts, optional nmap rate/timing cap, default targets/allowlist, and the
   scheduler tick. Agent-local nmap/SNMP/DHCP credentials and raw-socket config stay on
-  the agent.
-- **Discovery** — auto-import policy, reconciliation/conflict handling, and
-  review-queue + last-seen retention.
-- **Agents** — enrollment defaults and managed certificate issuance/rotation (this
-  phase's cert-lifecycle item); the `/agents` page exists today.
-- **Backup & Restore** — trigger/schedule `pg_dump`, run a tested restore, capture the
-  migration version (this phase's backup/restore item).
+  the agent. Planned.
+- **Discovery** — the opt-in auto-link on hardware-serial match toggle is shipped
+  (**partial**, ADR 0030). Auto-import policy, reconciliation/conflict handling, and
+  review-queue + last-seen retention remain planned.
+- **Agents** — enrollment defaults are planned. Managed certificate issuance and
+  rotation are available on the **Agent certificates** Settings tab (**done**, ADR
+  0018); the `/agents` page exists today.
+- **Backup & Restore** — on-demand `pg_dump` backups capture the migration version;
+  restore is documented and scripted. **Done** (ADR 0018).
 - **Notifications** — change webhooks (**done**, ADR 0022) and, later, alert
   thresholds. Outbound HMAC-signed JSON to subscribed endpoints, driven by the audit
   log as the change feed.
