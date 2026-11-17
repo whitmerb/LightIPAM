@@ -375,6 +375,9 @@ func (s *Store) ImportDiscovery(ctx context.Context, id, name string) (Discovery
 		return Discovery{}, fmt.Errorf("begin import: %w", err)
 	}
 	defer tx.Rollback(ctx)
+	if err := lockSubnetContainment(ctx, tx, false); err != nil {
+		return Discovery{}, err
+	}
 
 	var subnetID string
 	if err := tx.QueryRow(ctx, `

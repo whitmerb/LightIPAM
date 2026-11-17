@@ -22,6 +22,7 @@ migration, requires a major-version bump.
 - Published-image Compose and installation links now use the verified
   `whitmerb` repository and GHCR namespace following the repository transfer.
 - Webhook deliveries no longer follow redirects; 3xx responses are recorded as failures.
+- Subnet CIDR edits reject changes that would leave existing addresses outside the subnet, including concurrent imports and edits.
 - OIDC login no longer replaces an existing account's subject when another
   identity presents the same username.
 - MFA recovery codes remain single-use when concurrent verification requests

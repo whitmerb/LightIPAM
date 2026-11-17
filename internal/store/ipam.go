@@ -14,8 +14,9 @@ import (
 )
 
 var (
-	ErrOverlap          = errors.New("subnet overlaps an existing subnet")
-	ErrAddressOutOfCIDR = errors.New("address is outside the subnet")
+	ErrSubnetContainsAddresses = errors.New("subnet change would exclude existing addresses")
+	ErrOverlap                 = errors.New("subnet overlaps an existing subnet")
+	ErrAddressOutOfCIDR        = errors.New("address is outside the subnet")
 )
 
 type DashboardStats struct {
@@ -183,19 +184,64 @@ VALUES ($1, $2, $3::cidr, $4, $5, $6)`, id, emptyToNil(input.SiteID), input.CIDR
 	return s.GetSubnet(ctx, id)
 }
 
+// The two-part advisory key serializes CIDR edits with address membership writes.
+// Shared writer locks allow address operations to proceed concurrently.
+func lockSubnetContainment(ctx context.Context, tx pgx.Tx, exclusive bool) error {
+	query := `SELECT pg_advisory_xact_lock_shared(1279872333, 1)`
+	if exclusive {
+		query = `SELECT pg_advisory_xact_lock(1279872333, 1)`
+	}
+	_, err := tx.Exec(ctx, query)
+	return err
+}
+
+func validateAddressSubnet(ctx context.Context, tx pgx.Tx, subnetID, address string) error {
+	var contains bool
+	err := tx.QueryRow(ctx, `SELECT $2::inet <<= cidr FROM subnets WHERE id = $1`, subnetID, address).Scan(&contains)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrNotFound
+	}
+	if err != nil {
+		return err
+	}
+	if !contains {
+		return ErrAddressOutOfCIDR
+	}
+	return nil
+}
+
 func (s *Store) UpdateSubnet(ctx context.Context, id string, input SubnetInput) (Subnet, error) {
-	if err := s.ensureNoSubnetOverlap(ctx, id, input.CIDR); err != nil {
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
 		return Subnet{}, err
 	}
-	tag, err := s.db.Exec(ctx, `
-UPDATE subnets
-SET site_id = $2, cidr = $3::cidr, name = $4, vlan = $5, description = $6, updated_at = now()
-WHERE id = $1`, id, emptyToNil(input.SiteID), input.CIDR, input.Name, input.VLAN, input.Description)
+	defer tx.Rollback(ctx)
+	if err := lockSubnetContainment(ctx, tx, true); err != nil {
+		return Subnet{}, err
+	}
+	var overlap bool
+	if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM subnets WHERE cidr && $1::cidr AND id <> $2)`, input.CIDR, id).Scan(&overlap); err != nil {
+		return Subnet{}, err
+	}
+	if overlap {
+		return Subnet{}, ErrOverlap
+	}
+	var stranded bool
+	if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM ip_addresses WHERE subnet_id = $1 AND NOT (address <<= $2::cidr))`, id, input.CIDR).Scan(&stranded); err != nil {
+		return Subnet{}, err
+	}
+	if stranded {
+		return Subnet{}, ErrSubnetContainsAddresses
+	}
+	tag, err := tx.Exec(ctx, `UPDATE subnets SET site_id = $2, cidr = $3::cidr, name = $4, vlan = $5, description = $6, updated_at = now() WHERE id = $1`, id, emptyToNil(input.SiteID), input.CIDR, input.Name, input.VLAN, input.Description)
 	if err != nil {
 		return Subnet{}, fmt.Errorf("update subnet: %w", err)
 	}
 	if tag.RowsAffected() == 0 {
 		return Subnet{}, ErrNotFound
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return Subnet{}, err
 	}
 	return s.GetSubnet(ctx, id)
 }
@@ -240,12 +286,16 @@ ORDER BY ip.address`, subnetID)
 }
 
 func (s *Store) CreateAddress(ctx context.Context, subnet Subnet, input AddressInput) (IPAddress, error) {
-	contains, err := ipam.Contains(subnet.CIDR, input.Address)
+	tx, err := s.db.Begin(ctx)
 	if err != nil {
 		return IPAddress{}, err
 	}
-	if !contains {
-		return IPAddress{}, ErrAddressOutOfCIDR
+	defer tx.Rollback(ctx)
+	if err := lockSubnetContainment(ctx, tx, false); err != nil {
+		return IPAddress{}, err
+	}
+	if err := validateAddressSubnet(ctx, tx, subnet.ID, input.Address); err != nil {
+		return IPAddress{}, err
 	}
 
 	id, err := auth.RandomToken(18)
@@ -253,13 +303,16 @@ func (s *Store) CreateAddress(ctx context.Context, subnet Subnet, input AddressI
 		return IPAddress{}, err
 	}
 	var address IPAddress
-	if err := s.db.QueryRow(ctx, `
+	if err := tx.QueryRow(ctx, `
 INSERT INTO ip_addresses (id, subnet_id, device_id, address, state, hostname, notes)
 VALUES ($1, $2, $3, $4::inet, $5::address_state, $6, $7)
 RETURNING id, subnet_id, COALESCE(device_id, ''), host(address), state::text, hostname, notes, created_at, updated_at`,
 		id, subnet.ID, emptyToNil(input.DeviceID), input.Address, input.State, input.Hostname, input.Notes,
 	).Scan(&address.ID, &address.SubnetID, &address.DeviceID, &address.Address, &address.State, &address.Hostname, &address.Notes, &address.CreatedAt, &address.UpdatedAt); err != nil {
 		return IPAddress{}, fmt.Errorf("create address: %w", err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return IPAddress{}, err
 	}
 	return address, nil
 }
@@ -280,23 +333,30 @@ WHERE ip.id = $1`, id).Scan(&address.ID, &address.SubnetID, &address.DeviceID, &
 }
 
 func (s *Store) UpdateAddress(ctx context.Context, id string, subnet Subnet, input AddressInput) (IPAddress, error) {
-	contains, err := ipam.Contains(subnet.CIDR, input.Address)
+	tx, err := s.db.Begin(ctx)
 	if err != nil {
 		return IPAddress{}, err
 	}
-	if !contains {
-		return IPAddress{}, ErrAddressOutOfCIDR
+	defer tx.Rollback(ctx)
+	if err := lockSubnetContainment(ctx, tx, false); err != nil {
+		return IPAddress{}, err
+	}
+	if err := validateAddressSubnet(ctx, tx, subnet.ID, input.Address); err != nil {
+		return IPAddress{}, err
 	}
 
-	tag, err := s.db.Exec(ctx, `
+	tag, err := tx.Exec(ctx, `
 UPDATE ip_addresses
 SET device_id = $2, address = $3::inet, state = $4::address_state, hostname = $5, notes = $6, updated_at = now()
-WHERE id = $1`, id, emptyToNil(input.DeviceID), input.Address, input.State, input.Hostname, input.Notes)
+WHERE id = $1 AND subnet_id = $7`, id, emptyToNil(input.DeviceID), input.Address, input.State, input.Hostname, input.Notes, subnet.ID)
 	if err != nil {
 		return IPAddress{}, fmt.Errorf("update address: %w", err)
 	}
 	if tag.RowsAffected() == 0 {
 		return IPAddress{}, ErrNotFound
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return IPAddress{}, err
 	}
 	return s.GetAddress(ctx, id)
 }
