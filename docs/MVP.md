@@ -1,4 +1,9 @@
-# MVP Requirements
+# Original MVP requirements (historical)
+
+This records the initial scope, not the current feature inventory. Phases 1–6 are
+complete; see [Project state](agent/PROJECT_STATE.md), [README](../README.md) and
+[Roadmap](ROADMAP.md) for current capabilities and proposed work. Historical
+single-admin/MFA-later language below does not describe the released product.
 
 ## Target
 
@@ -93,13 +98,13 @@ The UI should support dark mode from the start.
 
 Tailwind CSS is the styling system for the first release.
 
-## Future Integrations
+## Original integration ideas and current pointers
 
 Leave clear extension points for:
 
-- NetBox import/export.
+- NetBox import/export — shipped; see [NetBox](NETBOX.md).
 - phpIPAM import/export.
-- DNS read-only discovery.
+- DNS read-only discovery — shipped in scanner-agent; see [Discovery](SCANNER_DISCOVERY.md).
 - UniFi.
 - pfSense and OPNsense.
 - Windows DHCP.

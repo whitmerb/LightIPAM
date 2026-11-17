@@ -24,9 +24,11 @@ scanner-protocol (`v1`) change, or a destructive database migration. Otherwise m
    section (Added / Changed / Fixed), and add the version-compare/tag link at the
    bottom. Note explicitly if `/api/v1`, the scanner protocol, or migrations changed.
 3. **Bump version references consistently:**
-   - `package.json` `version`.
+   - `package.json` and root `package-lock.json` versions.
+   - `.env.example` and both `compose.release.yaml` image defaults.
+   - Installation/release examples and the current Project state snapshot.
    - `README.md` image pull examples and any version badge/tags
-     (`ghcr.io/devsealware/lightipam:X.Y.Z` and `...-scanner:X.Y.Z`).
+     (`ghcr.io/whitmerb/lightipam:X.Y.Z` and `...-scanner:X.Y.Z`).
    - Confirm the compose/Dockerfile `VERSION` arg still defaults sanely (`dev`); the
      release workflow passes the git tag as `VERSION`.
 4. **Confirm image naming consistency** — app image `lightipam`, scanner image
@@ -38,8 +40,10 @@ scanner-protocol (`v1`) change, or a destructive database migration. Otherwise m
    + Tier 1 (`docker compose build` and `docker compose --profile scanner build`). The
    release workflow also runs `go vet` + `go test`.
 7. **Open the release PR.** No product code changes unless explicitly requested —
-   release prep is docs/version metadata only. After merge, the maintainer pushes the
-   `vX.Y.Z` tag; a non-prerelease tag also moves `latest`.
+   release prep is docs/version metadata only. After merge and explicit maintainer publication authorization, push the approved
+   `vX.Y.Z` tag at verified main. A non-prerelease tag also moves `latest`. Follow
+   `docs/RELEASING.md`: verify the workflow run, both architectures and exact image
+   digests before announcing success; a GitHub Release is separate from image publishing.
 
 ## Done when
 

@@ -43,7 +43,8 @@ docker compose --env-file .env -f compose.release.yaml up -d
 
 Open <http://localhost:8080> and create the first administrator. This local
 quick start uses plain HTTP; use a TLS-terminating reverse proxy and set
-`COOKIE_SECURE=true` before exposing LightIPAM beyond localhost.
+`COOKIE_SECURE=true` before exposing LightIPAM beyond localhost. The default Compose
+port mapping binds all host interfaces; restrict access for local evaluation.
 
 [Installation](docs/INSTALLATION.md) · [Security](docs/SECURITY.md) ·
 [Architecture](docs/ARCHITECTURE.md) · [API and CLI](docs/API.md) ·
@@ -194,6 +195,8 @@ and the [architecture decisions](docs/adr/).
 | Disaster recovery | [Disaster Recovery](docs/DISASTER_RECOVERY.md) |
 | NetBox-compatible data exchange | [NetBox Import/Export](docs/NETBOX.md) |
 | Configuration | [Settings](docs/SETTINGS.md) |
+| Engineering handoff | [Handoff](docs/HANDOFF.md) |
+| Release and image publishing | [Releasing](docs/RELEASING.md) |
 | Planned direction | [Roadmap](docs/ROADMAP.md) |
 | Release history | [Changelog](CHANGELOG.md) |
 | Brand assets | [Branding](docs/BRANDING.md) |

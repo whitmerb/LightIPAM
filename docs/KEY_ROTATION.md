@@ -1,78 +1,101 @@
-# Key & Certificate Rotation Runbook
+# Key and certificate rotation
 
-Light IPAM has three classes of cryptographic material. This runbook covers rotating
-each. Pairs with `docs/DISASTER_RECOVERY.md`.
+This runbook describes the current implementation. It does not provide an automated
+multi-key/re-sealing migration. See [Security](SECURITY.md),
+[Disaster recovery](DISASTER_RECOVERY.md), and [R12](ROADMAP.md#r12).
 
-| Material | Env / store | Protects | Rotation impact |
-| --- | --- | --- | --- |
-| App master secret | `APP_SECRET` | session/CSRF tokens; derives the encryption key when `APP_ENCRYPTION_KEY` is unset | invalidates sessions; re-seals secrets if it is the encryption key |
-| Encryption key | `APP_ENCRYPTION_KEY` (or derived from `APP_SECRET`) | seals TOTP secrets, the OIDC client secret, the managed-CA key | must re-seal or re-enter sealed secrets |
-| Managed CA | `app_ca` (DB, key sealed) | agent/app mTLS | invalidates all issued leaf certs |
-
-## 1. Rotating the app master secret (`APP_SECRET`)
-
-`APP_SECRET` signs/derives session material. If `APP_ENCRYPTION_KEY` is **set**
-separately, rotating `APP_SECRET` does **not** touch sealed secrets — it only
-invalidates in-flight session/CSRF tokens.
+For published deployments, select the same Compose file/project used at install:
 
 ```sh
-# Generate a new secret.
-openssl rand -base64 32
-# Set APP_SECRET in the app environment, then restart.
-docker compose up -d app
+export COMPOSE_FILE=compose.release.yaml
 ```
 
-Effect: existing sessions become invalid (users sign in again). No data migration.
+Preserve the project and volume names. Use `compose.yaml` only for a source-build
+installation; its development defaults are not operator-managed production secrets.
 
-> If `APP_ENCRYPTION_KEY` is **unset**, the encryption key is derived from
-> `APP_SECRET`, so rotating `APP_SECRET` also rotates the encryption key — follow
-> section 2's re-seal steps as well.
+## What each credential actually controls
 
-## 2. Rotating the encryption key (`APP_ENCRYPTION_KEY`)
+| Material | Used for | Rotation / revocation |
+| --- | --- | --- |
+| `APP_SECRET` | Fallback material from which the sealing key is derived when no valid dedicated encryption key is set | Changing it changes that fallback key, not database session/token validity. |
+| `APP_ENCRYPTION_KEY` | Dedicated base64-encoded 32-byte sealing key | Protects TOTP, OIDC client secret, managed-CA key, webhook signing secrets and sealed authentication-flow cookies. Existing ciphertext needs the old effective key. |
+| Session cookie / `sessions` rows | Opaque database-backed browser credentials with idle/absolute expiry | Use session revocation; rotating an application secret does not delete these rows. |
+| API tokens | Independent bearer credentials stored as hashes | Revoke affected tokens explicitly; application-key rotation does not revoke them. |
+| Managed CA / leaf files | App-to-agent mTLS trust and identities | Issue/deploy matching CA/leaf bundles and verify each peer. No online renewal or CRL is implemented. |
 
-The encryption key seals secrets at rest. Rotating it requires **re-sealing** the
-secrets it protects, because old ciphertext cannot be opened with the new key.
+Store the effective encryption material separately from database backups. A dedicated
+key prevents an `APP_SECRET` change from inadvertently changing the sealing key.
+An invalid dedicated key currently falls back to `APP_SECRET` with a startup warning;
+check configuration and startup logs rather than assuming a supplied key was accepted.
 
-Recommended procedure (no plaintext on disk):
+## Application master secret
 
-1. Set a new `APP_ENCRYPTION_KEY` (keep the old value at hand).
-2. The managed-CA key, TOTP secrets, and the OIDC client secret were sealed with the
-   old key. The simplest supported path is to **re-establish** them under the new key:
-   - **Managed CA:** Settings → *Agent certificates* → *Rotate CA*, then re-issue and
-     redeploy agent/app bundles.
-   - **OIDC client secret:** Settings → *Authentication* → re-enter the client secret
-     and save (it is sealed with the new key).
-   - **TOTP:** users re-enroll (Settings → *Account* → two-factor), or an admin can
-     leave existing enrollments and have affected users re-enroll on next failure.
-3. Restart the app.
+If a valid dedicated `APP_ENCRYPTION_KEY` is already configured and unchanged,
+changing `APP_SECRET` does not re-seal existing data and does not sign users out.
+Generate a replacement through the operator's secret-management process, update the
+Compose environment and recreate the app to load it:
 
-> Best practice: set a dedicated `APP_ENCRYPTION_KEY` from the start (rather than
-> deriving from `APP_SECRET`) so the two can be rotated independently.
+```sh
+docker compose up -d --force-recreate app
+```
 
-## 3. Rotating the managed CA
+A plain restart does not apply changed Compose environment values. If the dedicated
+key is absent, an `APP_SECRET` change is an encryption-key change: do not perform it
+without the maintenance plan below. Use explicit session/token revocation when
+responding to compromise, regardless of which application key changes.
 
-Use when the CA key is compromised or on a periodic schedule.
+## Encryption-key change: maintenance work, not a restart recipe
 
-1. Settings → **Agent certificates** → **Rotate CA now** (admin only; audited as
-   `agent.ca.rotated`). This generates a new CA key and invalidates every previously
-   issued leaf.
-2. Re-issue bundles from the same tab:
-   - *Issue & download agent bundle* → deploy `ca.crt`/`agent.crt`/`agent.key` to each
-     agent's certificate volume. The agent **hot-reloads** the new cert (no restart).
-   - *Issue & download app bundle* → deploy `ca.crt`/`app.crt`/`app.key` to the app's
-     certificate volume and restart the app so dispatch uses the new client cert.
-3. Confirm scans still reach agents under `/agents`.
+There is no complete built-in re-seal command or key ring. Do not replace the key
+and rely on users to re-enroll after failures. TOTP challenge verification opens the
+stored secret before trying a recovery code; a wrong key can therefore prevent that
+login path too. Managed-CA startup also needs review before wrong-key testing against
+valuable data: failed unsealing can lead to generating replacement CA state.
 
-## 4. Rotating leaf certificates (routine)
+Prepare a controlled, rehearsed maintenance plan instead:
 
-Leaf certs are short-lived (default 30 days). Before expiry, re-issue from the **Agent
-certificates** tab and redeploy; the agent hot-reloads its file without a restart. A
-sidecar/cron can automate the re-issue+deploy step.
+1. Back up the database and matching old effective key. Test recovery in an isolated
+   copy and retain a working local administrator/recovery path.
+2. Inventory all sealed values: TOTP enrollments, OIDC client secret, managed CA and
+   webhook signing secrets. Choose an approved re-seal migration or deliberate
+   re-provisioning plan for every class before changing configuration.
+3. If re-provisioning is selected, complete necessary account recovery/enrollment
+   preparation while the old key is still available. Re-entering only the OIDC
+   secret does not repair TOTP, webhooks or the managed CA.
+4. Quiesce application writes, apply the reviewed migration/configuration, recreate
+   the app, then verify local and MFA/SSO login, CA identity, signed webhooks and
+   agent connectivity in the isolated rehearsal before production execution.
+5. Retain old encrypted backups with their corresponding key for the approved
+   recovery period. Do not discard the old key merely because the app starts.
 
-## Compromise response (fast path)
+Implementing this migration and fail-closed recovery behavior is [R12](ROADMAP.md#r12),
+not a feature already delivered by this documentation update.
 
-1. Force-revoke sessions: Settings → *Security* → *Log out everywhere* (and reset
-   affected user passwords from *Users & Roles*).
-2. Rotate the managed CA (section 3) and redeploy certs.
-3. Rotate `APP_SECRET` / `APP_ENCRYPTION_KEY` (sections 1–2).
-4. Review the audit log for the relevant events.
+## Managed CA and leaf rotation
+
+Routine leaf renewal: use Settings → **Agent certificates** to issue/download the
+agent and app bundles before expiry (default leaf lifetime: 30 days). Deploy each
+bundle to its intended certificate volume. The agent hot-reloads its leaf files;
+the app reads its dispatch client identity at startup and must be restarted after
+file replacement. Keep private-key ownership/permissions correct on native Linux.
+
+CA replacement: use **Rotate CA** only as a deliberate trust change, then issue and
+distribute matching CA/agent/app bundles to every peer. Restart/recreate each
+scanner-agent after replacing its trusted CA: the client-CA pool is loaded only at
+startup even though its own leaf keypair hot-reloads. Restart the app after replacing
+its dispatch client certificate/key or CA file. Old and new peers cannot communicate
+until their trust/leaf sets match. After distribution and restarts, check agent
+registration/diagnostics and a scan only within an authorized scope. Certificate
+status/short TTLs are not a CRL revocation service.
+
+The development `scanner-certs` command remains supported for local work; replacing
+production trust with a newly generated development CA is not routine renewal.
+Online agent-pull enrollment/renewal is still [R31](ROADMAP.md#r31).
+
+## Compromise response
+
+Use Security/Account session controls and revoke affected API tokens explicitly;
+reset compromised passwords through Users & Roles. Decide whether CA/leaf or sealing
+keys are affected and follow the appropriate maintenance path above. Preserve audit
+records and matching recovery material. Rotating a key alone is not a complete
+credential-revocation or incident-response procedure.

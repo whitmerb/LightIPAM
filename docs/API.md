@@ -8,11 +8,14 @@ and ships a CLI, `lightipam-cli`, that consumes it. See ADR 0024 for the design.
 The API authenticates with a **personal API token**, not the session cookie.
 
 1. Sign in and open **Your account** (`/account`).
-2. Under **API tokens**, create a token and **copy it immediately** — it is shown once.
+2. As an **admin**, under **API tokens**, create a token and **copy it immediately**
+   — it is shown once. Viewer accounts cannot create tokens; their own token
+   revocation remains available.
 3. Send it on every request as `Authorization: Bearer <token>`.
 
-A token carries its owner's role: an **admin** token can read and write; a **viewer**
-token is read-only (writes return `403`). Revoke a token from the same page at any time.
+A token carries its owner's current role: an **admin** token can read and write; a
+token owned by a user now assigned **viewer** is read-only (writes return `403`).
+This describes validation of existing tokens, not viewer token issuance. Revoke a token from the same page at any time.
 Tokens are stored only as a SHA-256 hash; the plaintext is never recoverable.
 
 The API is under `/api/v1` and is cookie-free (so it needs no CSRF token). Reads work
@@ -65,7 +68,9 @@ curl -s -X POST -H "Authorization: Bearer $TOKEN" \
 Build it from the repo:
 
 ```sh
-go build -o lightipam-cli ./cmd/lightipam-cli
+mkdir -p bin
+go build -o bin/lightipam-cli ./cmd/lightipam-cli
+export PATH="$PWD/bin:$PATH"
 ```
 
 Configure with flags or environment variables (global flags come **before** the

@@ -55,7 +55,11 @@ Minimum checks:
 - Agent is not disabled or revoked.
 - Scan job requested CIDRs are contained by both the job allowlist and the agent allowlist.
 
-Certificate rotation should be added before production multi-agent deployments.
+Managed certificate issuance/rotation and agent hot reload are implemented. Operators
+deploy issued bundles. Only agent leaf keypairs hot-reload; a trusted-CA change
+requires agent restart, and app dispatch identity/trust changes require app restart.
+Automatic online renewal is not implemented. See
+[Agent certificates](SCANNER_AGENT.md#mtls) and [Key rotation](KEY_ROTATION.md).
 
 ## Scan Job
 

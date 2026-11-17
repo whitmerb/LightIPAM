@@ -11,7 +11,9 @@ Light IPAM should be small enough to run in a single Docker Compose stack, but s
 The app owns:
 
 - User authentication and authorization.
-- Sites, VRFs, VLANs, subnets, addresses, reservations, and device records.
+- The default/site association, optional subnet VLAN metadata, sparse IPv4 subnets
+  and addresses, reservations/statuses, devices and MAC records. VRF-aware inventory
+  is not implemented; subnet overlaps are blocked globally.
 - Scan policies, schedules, and result review.
 - Audit logs and configuration history.
 - Reporting and export.
@@ -46,17 +48,27 @@ observations that flow through the discovery review queue.
 
 ### Database
 
-Use PostgreSQL as the source of truth. Prefer native `inet` and `cidr` columns for addresses and subnets, with exclusion constraints where useful to prevent overlapping allocations within the same VRF.
+PostgreSQL is the source of truth, with native `inet`, `cidr` and `macaddr` columns.
+Application writes use parameterized containment/overlap queries (`cidr && $1`);
+there is no VRF-scoped overlap exception. Subnet CIDR edits and application address
+membership writes coordinate through transaction advisory locks and fresh containment
+checks. These locks are not a database trigger for arbitrary external SQL.
 
 ## Discovery Pipeline
 
-1. Define allowed scan scopes by site, VRF, subnet, and agent.
+1. Define explicit IPv4 target scopes and per-agent allowlists; the app and agent
+   each validate containment. There is no VRF scope selector.
 2. Agent performs low-impact host discovery.
 3. Agent performs policy-limited port/service scans.
 4. Agent normalizes observations into host, address, service, OS, and evidence records.
 5. App presents changes as reviewable findings before mutating critical IPAM records.
 
-## UI Direction
+## UI direction and implemented surfaces
+
+The inventory, search, dashboard, discovery, device, schedule and Settings surfaces
+are server-rendered. The list below describes design direction as well as existing
+views; it does not imply that a subnet tree, topology viewer, every filter or a
+general-purpose policy editor has shipped. Remaining usability work is in Roadmap.
 
 The UI should combine a beautiful dashboard with dense operational views:
 

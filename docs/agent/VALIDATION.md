@@ -57,20 +57,57 @@ create a subnet, and run a scan from **Scans**. Targets must fall within the age
 ./scripts/verify.sh --docker   # Tier 0 + container builds
 ```
 
+## PostgreSQL regression tests
+
+Store integration tests skip when `LIGHTIPAM_TEST_DATABASE_URL` is unset. A default
+`go test ./...` pass is not evidence that these database tests ran. Use an isolated
+PostgreSQL 16 database; tests create/drop private schemas, never target production.
+The test role must create/drop schemas. For example, with an unused loopback port:
+
+```sh
+docker run --rm -d --name lightipam-test-db \
+  -p 127.0.0.1:55439:5432 \
+  -e POSTGRES_DB=lightipam_test -e POSTGRES_USER=lightipam_test \
+  -e POSTGRES_PASSWORD=lightipam_test \
+  --tmpfs /var/lib/postgresql/data postgres:16-alpine
+docker exec lightipam-test-db pg_isready -U lightipam_test -d lightipam_test
+export LIGHTIPAM_TEST_DATABASE_URL='postgres://lightipam_test:lightipam_test@127.0.0.1:55439/lightipam_test?sslmode=disable'
+go test ./internal/store -count=1 -v
+./scripts/verify.sh --docker
+docker stop lightipam-test-db
+unset LIGHTIPAM_TEST_DATABASE_URL
+```
+
+Wait for `pg_isready` to succeed before testing. Credentials above are only for the
+disposable local test database. For containment/identity changes, run the relevant
+race/concurrency regressions as well and report exactly which database tests ran.
+
 ## CI
 
 `.github/workflows/ci.yml` runs Tier 0 plus both container builds on every pull
 request and on pushes to `main`. It does **not** publish images — publishing happens
 only in `.github/workflows/release.yml` when a `v*` tag is pushed. Keep local
 validation and CI in step: if you change the validation steps here, update the
-workflow too.
+workflow too. PR/main CI provisions an ephemeral PostgreSQL 16 service and sets the
+test URL so store regressions execute. The release job does not yet provision it;
+extending release/full-stack coverage is [R01](../ROADMAP.md#r01).
+The release publisher is separate from CI; see [Releasing](../RELEASING.md).
+
+## Dependency and generated-asset checks
+
+Use `npm ci` after lockfile changes. Rebuild CSS and inspect `git diff` for accidental
+asset drift; never edit generated CSS directly. `npm audit` is a separate result:
+the compatible November lockfile refresh reduced findings but left the picomatch
+path unresolved. A passing build does not mean a clean audit. Record current audit
+output and use [R05](../ROADMAP.md#r05) for a reviewed major toolchain migration; do
+not force an upgrade or suppress warnings to make the report green.
 
 ## Troubleshooting
 
 - **Go cache / sandbox permission errors** (e.g. `go: failed to ... permission
   denied` on `$GOCACHE`): rerun with normal Go build-cache permissions rather than
   editing source or vendoring. Do not "fix" a sandbox issue by changing the code.
-- **`go build ./cmd/...` drops stray `/server` or `/scanner-agent` binaries** at the
+- **`go build ./cmd/server` or `go build ./cmd/scanner-agent` (one main package, no `-o`) can drop stray `/server` or `/scanner-agent` binaries** at the
   repo root. Both are gitignored — do not commit them.
 - **Confirm no silent dependency creep in the agent:**
   `go build -mod=readonly ./cmd/scanner-agent`.

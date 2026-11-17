@@ -15,6 +15,7 @@ review guidance live in their own single-source files:
 - [`docs/agent/PROMPT_TEMPLATES.md`](docs/agent/PROMPT_TEMPLATES.md) — reusable task prompts.
 - [`CHANGELOG.md`](CHANGELOG.md) — shipped release history.
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — roadmap and planned direction.
+- [`docs/HANDOFF.md`](docs/HANDOFF.md) — engineering entry point and compatibility guidance.
 
 ## Working with Claude Code
 
@@ -23,7 +24,7 @@ review guidance live in their own single-source files:
 - **Surface uncertainty instead of guessing.** If a requirement is ambiguous or two
   interpretations exist, ask or flag it — do not pick silently and run with it.
 - **Use the focused skills** in [`.agents/skills/`](.agents/skills) for task-specific
-  workflows: `lightipam-bugfix`, `lightipam-scanner-change`, `lightipam-review`,
+  workflows: `lightipam-github-workflow`, `lightipam-bugfix`, `lightipam-scanner-change`, `lightipam-review`,
   `lightipam-doc-sync`, `lightipam-release-prep`.
 - **Keep docs in sync** when behavior or status changes (see the "Documentation sync"
   section of `AGENTS.md`).

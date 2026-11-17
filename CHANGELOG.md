@@ -10,6 +10,12 @@ migration, requires a major-version bump.
 
 ## [Unreleased]
 
+### Changed
+
+- Reconcile current product/security/operations documentation, add a product-neutral
+  engineering handoff and release-publishing guide, and replace stale planning
+  statements with a 36-item roadmap including the CSS toolchain migration.
+
 ### Fixed
 
 - Device and address deletion now stays consistent across the Devices and

@@ -115,12 +115,15 @@ or destructive-migration change).
 
 Task:
 - Update CHANGELOG.md (move Unreleased → the version + date; Keep a Changelog format).
-- Bump version references: package.json, README image tags/pull examples.
+- Bump version references: package.json/lockfile roots, published Compose defaults,
+  .env.example, README and installation examples.
 - Confirm docs/agent/PROJECT_STATE.md and docs/ROADMAP.md reflect what shipped.
 - Validate builds (VALIDATION.md Tier 0 + Tier 1); confirm app/scanner image naming.
 
 Constraints: no product code changes unless explicitly requested. The release workflow
-publishes on the pushed v* tag — do not publish images by hand.
+publishes on the pushed v* tag — do not publish images by hand. Follow
+docs/RELEASING.md, verify explicit maintainer authorization and check both image
+architectures/digests before reporting publication.
 
 Acceptance criteria: a clean release PR; the tag push builds and publishes cleanly.
 

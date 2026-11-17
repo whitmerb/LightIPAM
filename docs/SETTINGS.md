@@ -5,8 +5,9 @@ variables. The **Settings** page (sidebar → System → **Settings**) is the ho
 that configuration: a tabbed panel where an operator tunes how the product behaves.
 Today it ships the **Security**, **Users & Roles**, **Authentication**, **Agent
 certificates**, **Backup & Restore**, **Custom fields**, **Policy**, **Discovery**,
-and **Notifications** tabs; the remaining tabs below are planned and tracked here
-and in `docs/ROADMAP.md`.
+and **Notifications** tabs. General and app-side Scanning tabs are not implemented;
+Data & Audit is a proposed consolidation of existing exchange views and future
+export/archival work. The table below distinguishes shipped controls from proposals.
 
 ## How settings work
 
@@ -44,21 +45,21 @@ elevated scanner agent:
   the DHCP lease-file path (`AGENT_DHCP_LEASE_FILE`), DNS resolver, and the agent's
   allowlist (`AGENT_ALLOWED_CIDRS`). The agent's local allowlist cannot be widened by
   the app UI alone (see `docs/SECURITY.md`).
-- The app's **Scanning** tab therefore holds only **dispatch-time defaults** for jobs
+- A future app **Scanning** tab may hold only **dispatch-time defaults** for jobs
   the app sends over mTLS (default scan type/mode, timeouts, rate cap, default
   targets) — not the agent's nmap/SNMP/DHCP credentials or capabilities.
-- App-managed **secrets** that do belong in settings (e.g. a future OIDC client
-  secret) must be **encrypted at rest** (Phase 5), never stored or rendered in
-  plaintext.
+- App-managed secrets already sealed at rest include the OIDC client secret,
+  managed-CA private key and webhook signing secrets. TOTP secrets are also sealed.
+  Existing saved secrets must not be echoed in forms or logs.
 
 ## Tabs
 
 | Tab | Configures | Scope | Status |
 | --- | --- | --- | --- |
-| **Security** | Login lockout (max attempts, window, lockout duration), session idle + absolute timeouts, and the "log out everywhere" behavior (keep this device vs. sign out all). Active-session review + revoke live here too. Future: minimum password length, secure-cookie enforcement, MFA/OIDC toggles. | App | **Done** (ADR 0017) |
+| **Security** | Login lockout (max attempts, window, lockout duration), session idle + absolute timeouts, and the "log out everywhere" behavior (keep this device vs. sign out all). Active-session review + revoke live here too. Future: configurable password policy/secure-cookie enforcement; OIDC already has its Authentication tab and TOTP is per-account. | App | **Done** (ADR 0017) |
 | **Users & Roles** | Manage local accounts; admin vs. read-only operator so a viewer cannot mutate IPAM or scan config; reset passwords; last-admin/self-delete guards. | App | **Done** (ADR 0018) |
 | **Authentication** | OIDC SSO (issuer, client id; **client secret sealed at rest**), auto-provision policy, username claim. MFA (TOTP) enrollment + recovery codes live on the per-user **Account** page. | App (secrets encrypted at rest) | **Done** (ADR 0018) |
-| **Agent certificates** | Managed CA status (fingerprint/expiry), issue downloadable agent/app mTLS bundles (CN/SANs/TTL), download the CA, and rotate the CA. Replaces the dev CA; agents hot-reload rotated certs. | App (mTLS/cert lifecycle) | **Done** (ADR 0018) |
+| **Agent certificates** | Managed CA status (fingerprint/expiry), issue downloadable agent/app mTLS bundles (CN/SANs/TTL), download the CA, and rotate the CA. Replaces the dev CA; agents hot-reload leaf keypairs; trusted-CA replacement requires agent restart. | App (mTLS/cert lifecycle) | **Done** (ADR 0018) |
 | **Backup & Restore** | On-demand `pg_dump` (custom format) capturing the schema-migration version; list/download/delete; documented + scripted restore. | App | **Done** (ADR 0018) |
 | **Custom fields** | Define operator-managed text attributes per entity type (subnet/address/device); values are edited on each record's form and shown on its detail page. Unique per type; delete cascades to stored values. | App | **Done** (ADR 0019) |
 | **Policy** | Enable/disable the Policy / Health checks (overlapping subnets, stale records, unmanaged services), set the stale threshold (days), and choose whether never-seen records are flagged. Feeds the `/policy` page and the dashboard widget. | App | **Done** (ADR 0020) |
@@ -66,14 +67,15 @@ elevated scanner agent:
 | **Scanning (nmap)** | App-side scan **dispatch defaults**: default scan type (Combined) and nmap depth mode (Light/Standard/Deep), per-type timeout defaults, optional rate/timing cap passed to nmap, default targets/allowlist hints, and the scheduler tick. **Agent-local** nmap/SNMP/DHCP credentials and raw-socket config stay on the agent. (A schedule's **run window** — time-of-day + weekdays + timezone, ADR 0021 — is **per-schedule** config on the schedule form, not a global setting here.) | App (dispatch defaults only) | Planned |
 | **Discovery** | How scan findings fold into the inventory. Ships the opt-in **auto-link on hardware serial match** toggle (gold-confidence device links at import time, default off, ADR 0030). Future: auto-import policy for trusted agents (today per-agent on the agent form), reconciliation/conflict handling, and review-queue retention. (The "when to mark a record stale" aging knob lives on the **Policy** tab, ADR 0020.) | App | **Partial** (ADR 0030) |
 | **Notifications** | Change webhooks: register outbound endpoints, subscribe each to event categories (IPAM / discovery / scan / security), optionally sign deliveries with a sealed HMAC secret, send a test, and review the recent delivery log. Driven by the audit log as the change feed. Future: alert thresholds. | App (secret sealed at rest) | **Done** (ADR 0022) |
-| **Data & Audit** | Audit-log retention/export and the CSV / NetBox import-export entry points (CSV **and** NetBox import/export both exist on the Import / Export page, ADR 0016 + 0023). | App | Partial (import/export exists) |
+| **Data & Audit** | Proposed audit export/archival controls and consolidated CSV / NetBox entry points (CSV **and** NetBox import/export both exist on the Import / Export page, ADR 0016 + 0023). | App | Proposed tab; Import / Export already shipped |
 
 > Per-user **Account** (`/account`, all roles): password change, two-factor (TOTP)
 > enrollment with recovery codes, the user's own active-session review, and **API
 > tokens** for the machine API / `lightipam-cli` (a token carries the user's role; ADR
-> 0024, `docs/API.md`). This is self-service and not part of the admin-only Settings area.
+> 0024, `docs/API.md`). The account area is self-service; token creation is admin-only
+> and token revocation remains self-service. It is not part of the admin-only Settings area.
 
-This list is the working plan, not a contract; tabs may be split, merged, or
-re-sequenced as the phases land. The guiding principle is that anything an operator
-might reasonably want to change should be changeable here — within the security
-boundary above.
+This table is the current feature inventory plus explicit proposals. Future work
+is prioritized in [Roadmap](ROADMAP.md); it is not a delivery commitment. Audit
+archival proposals must preserve append-only rows; no retention purge is approved.
+Operator configurability remains bounded by the security boundary above.

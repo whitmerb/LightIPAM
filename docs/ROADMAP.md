@@ -1,6 +1,6 @@
 # Roadmap
 
-## Phase 1: Manual IPAM MVP
+## Phase 1: Manual IPAM MVP — complete
 
 - Authentication, sessions, and admin bootstrap.
 - Default site, optional VLAN metadata, subnets, and sparse address records.
@@ -12,7 +12,7 @@
 - Bulk edit and import/export foundation. *(Done in Phase 4.5 — see "Carried forward from earlier phases" below.)*
 - Audit log.
 
-## Phase 2: Scanner Agent Foundation
+## Phase 2: Scanner Agent Foundation — complete
 
 - Scanner agent registration.
 - App-to-agent mTLS.
@@ -137,7 +137,7 @@ the agent.
   the admin **Authentication** settings tab with the client secret sealed at rest.
 - **MFA (TOTP) (done, ADR 0018).** RFC 6238 TOTP (stdlib, RFC-vector tested) with
   single-use recovery codes; the per-user secret is sealed at rest (migration 15). Login
-  gains a signed pending-MFA second step; self-service enrollment (QR + manual key),
+  gains a sealed pending-MFA second step; self-service enrollment (QR + manual key),
   recovery-code display, and disable live on the `/account` page.
 - **Roles beyond the single admin (done, ADR 0018).** `users.role` admin vs. read-only
   viewer (migration 14); a central middleware blocks viewers from all mutations, the
@@ -156,44 +156,18 @@ the agent.
 
 ### Configurability & the settings panel
 
-Light IPAM should be **highly configurable from the UI**, not just from environment
-variables. The tabbed **Settings** page introduced with session hardening (ADR 0017)
-is the home for that, backed by the runtime `app_settings` store (env values seed the
-boot defaults). The **Security** tab is done; the rest below are planned. Each
-runtime-tunable tab follows the same pattern — a pure, unit-tested form validator,
-values cached and refreshed on save, and an audited `settings.<tab>.updated` event.
-The full design, the per-tab field list, and the **agent-secret boundary** (SNMP
-communities, nmap egress pinning, DHCP lease paths, and the agent allowlist stay on
-the agent, never in the app DB or this panel) live in **`docs/SETTINGS.md`**.
+The Settings panel is backed by runtime `app_settings` values with pure validators,
+cache refresh and audit events. Security, Users & Roles, Authentication, Agent
+certificates, Backup & Restore, Custom fields, Policy and Notifications are shipped.
+Discovery has the shipped hardware-serial auto-link toggle; its wider policy controls
+remain future work. General and app-side Scanning tabs are not implemented. Native
+CSV and NetBox exchange already live on Import / Export; a consolidated Data & Audit
+tab and audit export/archival remain proposals. Backups are on-demand today, with
+operator-scheduled `pg_dump` possible outside the app.
 
-Planned tabs (sequenced with the phases that unlock them):
-
-- **Security** — login lockout, session timeouts, "log out everywhere" behavior,
-  active-session review. **Done** (ADR 0017). Future fields: password policy,
-  secure-cookie enforcement, MFA/OIDC toggles.
-- **General** — instance name, default site, table page size, date/time format,
-  default theme.
-- **Users & Roles** — manage accounts and admin vs. read-only operator (this phase's
-  "roles beyond the single admin" item).
-- **Authentication** — OIDC SSO and MFA (TOTP) configuration (this phase's SSO/MFA
-  items); the OIDC client secret is sealed (encrypted at rest).
-- **Scanning (nmap)** — app-side scan **dispatch defaults**: default scan type/mode,
-  per-type timeouts, optional nmap rate/timing cap, default targets/allowlist, and the
-  scheduler tick. Agent-local nmap/SNMP/DHCP credentials and raw-socket config stay on
-  the agent.
-- **Discovery** — auto-import policy, reconciliation/conflict handling, and
-  review-queue + last-seen retention.
-- **Agents** — enrollment defaults and managed certificate issuance/rotation (this
-  phase's cert-lifecycle item); the `/agents` page exists today.
-- **Backup & Restore** — trigger/schedule `pg_dump`, run a tested restore, capture the
-  migration version (this phase's backup/restore item).
-- **Notifications** — change webhooks (**done**, ADR 0022) and, later, alert
-  thresholds. Outbound HMAC-signed JSON to subscribed endpoints, driven by the audit
-  log as the change feed.
-- **Custom fields** — define operator-managed text attributes per entity type
-  (subnet/address/device), edited on each record's form. **Done** (ADR 0019).
-- **Data & Audit** — audit-log retention/export and the CSV / NetBox import-export
-  entry points (CSV import/export already exists).
+See [Settings](SETTINGS.md) for the current inventory. The planning backlog below
+tracks remaining work without relabeling shipped features as planned. Agent-local
+credentials, routing, lease paths and allowlists never move into this panel.
 
 ### Secrets & certificates
 
@@ -201,8 +175,8 @@ Planned tabs (sequenced with the phases that unlock them):
   (private key sealed at rest, migration 17) that signs short-lived agent/app mTLS
   leaves, replacing the hand-run dev CA as the issuing authority. The **Agent
   certificates** settings tab issues downloadable bundles (configurable CN/SANs/TTL),
-  downloads the CA, and rotates the CA; the scanner agent hot-reloads a rotated cert
-  without a restart. Revocation relies on short TTLs (the accepted alternative to a CRL).
+  downloads the CA, and rotates the CA; the scanner agent hot-reloads a rotated leaf
+  keypair under the same CA. A trust-root replacement requires an agent restart. Revocation relies on short TTLs (the accepted alternative to a CRL).
   *Follow-up: online agent-pull enrollment so an agent renews its own cert over a
   bootstrap channel without operator file deployment.*
 - **Encrypted secrets at rest (done, ADR 0018).** `internal/secret` seals the TOTP
@@ -239,7 +213,7 @@ admin/viewer roles, login throttling, session hardening, and a runtime-editable
 Settings panel. The one explicitly-deferred increment is **online agent-pull
 certificate enrollment** (the agent renewing its own cert over a bootstrap channel);
 today the managed CA issues and the agent hot-reloads operator-deployed certs. Phase 5
-is complete enough to begin **Phase 6**.
+is complete with online renewal explicitly deferred; Phase 6 is also complete below.
 
 ## Phase 6: Advanced Automation
 
@@ -354,6 +328,64 @@ import/export (ADR 0023), and the machine API + CLI (ADR 0024) are all merged.
   import/sync time (`device.link.auto`). The SNMPv3 engine ID stays out of scope
   until SNMPv3 support exists (the stack is v2c-only).
 
-## Planned
+## Planning backlog — 36 items
 
-- The next phase is open — confirm direction with the user before starting.
+Updated 2026-11-17. This is the forward-looking backlog requested by the maintainer,
+separate from the completed phases above. **None of these 36 items is represented as
+shipped.** Priority is proposed sequencing: P1 foundations/risk, P2 product and
+operational improvements, P3 optional expansion. No dates or implementation capacity
+are committed. Select a scoped task before implementation; this roadmap does not
+approve new dependencies, security-policy changes or architecture-invariant changes.
+
+The 2026-11 hardening fixes belong in [Changelog](../CHANGELOG.md), not in this open
+backlog. In particular, further concurrency qualification builds on the containment
+fix; CSS migration remains open after the compatible lockfile refresh. Advisory
+counts are a dated observation, not a permanent security score.
+
+| ID | Priority | Improvement and acceptance target | Prerequisite / decision |
+| --- | --- | --- | --- |
+| <a id="r01"></a>R01 | P1 | **PostgreSQL release and full-stack integration gates.** Build on the PostgreSQL-enabled PR/main CI by adding release-job database coverage and service/API integration tests, isolated schemas and failures on unexpected skips. | Approve runner cost; PR/main store CI is implemented, release-job database provisioning is not. |
+| <a id="r02"></a>R02 | P1 | **Subnet overlap and containment qualification.** Extend the new containment coverage to concurrent overlapping creates/updates, cancellation, lock ordering and representative large imports; prove bounded completion without stranded records. | Keep native network types and global overlap policy; direct SQL is outside the advisory-lock protocol. |
+| <a id="r03"></a>R03 | P1 | **OIDC issuer identity binding.** Threat-model issuer plus subject identity, issuer reconfiguration and migration of existing bindings; implement only an approved design with negative identity-collision tests. | Security/ADR decision; current subject lookup alone is not an issuer migration policy. |
+| <a id="r04"></a>R04 | P1 | **Explicit first-login OIDC linking policy.** Choose proof/consent rules for linking an unbound local account by username, including admin accounts and colliding claims; document and test the selected policy. | Security/ADR decision; preserving existing bindings does not remove first-link trust. |
+| <a id="r05"></a>R05 | P1 | **CSS toolchain major migration.** Evaluate and migrate the approved Tailwind toolchain to remove the unresolved picomatch path and bundled stale browser data. Verify clean installation, advisory resolution, deterministic CSS and representative light/dark, responsive and JS-off screens. | Approve major-version changes and any new packages first; do not suppress audit output or treat the partial patch as complete. |
+| <a id="r06"></a>R06 | P1 | **MFA verification attempt budgets.** Design atomic, bounded TOTP/recovery-code verification attempt limits, failure audit and lockout/recovery behavior; test concurrent and distributed attempts without weakening recovery access. | Security-policy decision; single-use recovery codes do not themselves provide attempt throttling. |
+| <a id="r07"></a>R07 | P1 | **Real-hardware discovery qualification.** Test SNMP ARP/inventory/serial/access VLAN, LLDP/CDP, NetBIOS/mDNS, DNS and both DHCP lease formats in an authorized lab; commit sanitized fixtures and publish a support matrix. | Hardware access and scan authorization; hermetic tests alone do not establish hardware support. |
+| <a id="r08"></a>R08 | P1 | **Bridge, macvlan and routed egress qualification.** Exercise adjacent/routed scopes, auto/always/off pin modes, missing routes, source mismatch and zero-host diagnostics; publish verified deployment recipes. | Authorized lab; all probing remains in scanner-agent under both allowlists. |
+| <a id="r09"></a>R09 | P1 | **Automated restore drills.** Restore a fixture backup into an isolated database, migrate it forward, check inventory/audit counts and encrypted-secret access, and record recovery timings. | Never overwrite a user deployment; retain matching encryption material. |
+| <a id="r10"></a>R10 | P1 | **Certificate expiry visibility.** Surface agent/app/CA expiry with actionable renewal thresholds; test expired/not-yet-valid chains, operator bundle distribution and hot reload. | Reuse managed CA; choose alert delivery policy separately. |
+| <a id="r11"></a>R11 | P1 | **Release upgrade qualification.** Exercise prior supported images to a candidate, persistent volumes, secrets, readiness and protocol compatibility; document restore-based recovery and unsupported downgrades. | Define supported upgrade range; no destructive migration without required approval. |
+| <a id="r12"></a>R12 | P1 | **Safe encryption-key rotation and recovery.** Design an audited re-seal or key-ring migration for TOTP, OIDC, managed CA and webhook secrets; test wrong-key startup, recovery-code behavior and fail-closed CA loading without replacement of recoverable state. | Security/ADR decision; no built-in complete re-seal workflow exists today. |
+| <a id="r13"></a>R13 | P2 | **General Settings tab.** Select and implement instance name, default site, page size and date/time/theme defaults with pure validators, cache refresh and audit events. | Choose fields first; this tab is not implemented. |
+| <a id="r14"></a>R14 | P2 | **App-side scanning defaults.** Apply safe default scan type/depth/timeout and target hints consistently to manual/scheduled forms, showing effective values without widening agent bounds. | Agent-local credentials, routes and allowlists remain outside Settings. |
+| <a id="r15"></a>R15 | P2 | **Discovery queue filtering and bulk workflow.** Improve agent/subnet/classification/age filtering, selection persistence and action previews while keeping conflicts in individual review. | Reuse existing reconciliation and import paths; no silent conflict overwrite. |
+| <a id="r16"></a>R16 | P2 | **Discovery evidence provenance.** Explain source, observation time, imported value and conflicting evidence; make serial-based link suggestions understandable and reversible. | Inspect existing evidence before proposing additive schema changes. |
+| <a id="r17"></a>R17 | P2 | **Last-seen and stale-state clarity.** Distinguish never-seen, stale, failed-scan and recently observed records; link policy thresholds to relevant scan outcomes without deleting records automatically. | Reuse existing Policy settings; no new retention behavior implied. |
+| <a id="r18"></a>R18 | P2 | **Device-link management usability.** Improve linked-member navigation, hardware identity display, dismiss/confirm rationale and reversible unlink flows across subnets. | Preserve link-not-merge and ADRs 0029/0030. |
+| <a id="r19"></a>R19 | P2 | **Accessibility qualification.** Audit and fix keyboard navigation, form labels/errors, focus, tables/modals, contrast, zoom and JS-off core flows with reproducible acceptance evidence. | Approve any new testing dependency; preserve strict CSP. |
+| <a id="r20"></a>R20 | P2 | **Dense tables and small-screen usability.** Verify navigation, overflow, bulk controls, long names/CIDRs, empty states and column preferences across representative viewport sizes. | Use server-rendered templates and existing progressive enhancement. |
+| <a id="r21"></a>R21 | P2 | **Visual system and brand consistency.** Audit existing logo/icon usage, typography, spacing, status colors, light/dark states and authentication/settings screens; implement scoped approved corrections. | Retain the existing brand unless a replacement is explicitly selected. |
+| <a id="r22"></a>R22 | P2 | **Search and operational filters.** Improve match context, query persistence and cross-entity navigation; measure representative inventory performance and scope saved filters before adding storage. | Decide saved-filter ownership and persistence; do not invent multi-tenancy. |
+| <a id="r23"></a>R23 | P2 | **API pagination and filtering.** Add bounded, deterministically ordered list queries and useful filters with documented compatibility behavior and CLI support. | Stable /api/v1 compatibility review; no silent response-shape changes. |
+| <a id="r24"></a>R24 | P2 | **API and CLI compatibility coverage.** Specify actual update/null/error semantics and test authorization, validation, not-found cases and CLI failures against a service. | Machine-readable specification optional; approve added tooling separately. |
+| <a id="r25"></a>R25 | P2 | **API token lifecycle controls.** Select expiry, last-used visibility and revocation rules; evaluate scopes/service accounts, test owner-role changes and audit lifecycle operations. | Security decision for new credential types; viewer issuance policy must be explicit. |
+| <a id="r26"></a>R26 | P2 | **Import preview and diagnostics.** Show actionable row/column errors, NetBox loss/mapping warnings and accurate preview/apply differences while preserving all-or-nothing apply. | Reuse canonical CSV validation and translation; no parallel importer. |
+| <a id="r27"></a>R27 | P2 | **Reliable webhook delivery design.** Specify durable delivery guarantees, bounded retry/backoff, identifiers, replay and sanitized diagnostics; test transient and permanent failures. | ADR/storage decision; preserve signed payloads, redirect rejection and append-only audit feed. |
+| <a id="r28"></a>R28 | P2 | **Operational diagnostics and correlation.** Document structured log fields, safe correlation identifiers, scheduler state, DB readiness and classified agent failures; provide redacted diagnostic collection. | Metrics endpoints only after need/scope decision; keep readiness distinct from liveness. |
+| <a id="r29"></a>R29 | P2 | **Backup scheduling and file retention.** Add audited scheduling, bounded backup-file retention, failure status and concurrency controls; test full disk and failed dumps. | Choose off-host responsibility; backup file cleanup must not delete audit records. |
+| <a id="r30"></a>R30 | P2 | **Audit export and archival policy.** Provide bounded filtered export with stable ordering and actor/target context; document growth and archival without mutating append-only records. | Any deletion/retention exception requires ADR and invariant approval. |
+| <a id="r31"></a>R31 | P3 | **Online agent-pull certificate renewal.** Design bootstrap trust, identity binding, overlap, expiry and compromise recovery; test failed renewal and enrollment before replacing operator deployment. | Explicit security/ADR approval; this deferred Phase 5 feature is not shipped. |
+| <a id="r32"></a>R32 | P3 | **Agent-local SNMPv3.** Choose supported authentication/privacy combinations, agent-only secret handling and redacted diagnostics; qualify real devices. | ADR/dependency approval if needed; app must not store SNMP credentials. |
+| <a id="r33"></a>R33 | P3 | **VLAN and interface context expansion.** Scope tagged/trunk membership and richer port status beyond existing access PVID, with freshness/vendor-gap handling and qualified switch fixtures. | Choose supported models; no trunked network access in the app. |
+| <a id="r34"></a>R34 | P3 | **OUI data refresh workflow.** Select a licensed/provenanced vendor dataset and reproducible update process; validate prefixes and preserve private-MAC classification. | Approve data source, distribution and maintenance obligations. |
+| <a id="r35"></a>R35 | P3 | **Terraform provider feasibility.** Define identity/import/drift/delete semantics and prototype against the stable API, including overlaps and lifecycle failures. | Separate provider/dependency/maintenance decision; not an app dependency. |
+| <a id="r36"></a>R36 | P3 | **Dependency, image and deprecation support policy.** Define supported Go/Node/PostgreSQL/Alpine versions, advisory/update cadence and exception expiry; maintain a register of old namespaces, development methods and compatibility modes with migration guidance before removals. | Maintainer support/dependency decision; no method is deprecated merely by appearing here. |
+
+### Selecting the next task
+
+Start with evidence and an acceptance test; avoid duplicating an open issue/PR.
+Security-policy, discovery-privilege, schema and dependency decisions retain the
+approval gates in [AGENTS.md](../AGENTS.md). Real-hardware qualification needs an
+authorized lab. Product polish should use the existing server-rendered UI/brand.
+The [engineering handoff](HANDOFF.md) links these IDs and records current operational
+constraints; it does not keep a second copy of the acceptance criteria.

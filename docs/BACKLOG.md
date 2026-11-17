@@ -1,10 +1,10 @@
 # Initial Backlog
 
-These are the first GitHub issues to create once repository issue automation is available.
+Historical record of the first GitHub issues; this is not the active backlog.
 
 **Status: all items below (issues #1–#10) are merged to `main`.** The initial
-backlog is complete; further work is driven by `docs/ROADMAP.md` (Phase 4+) and
-the "Next" sections of `CLAUDE.md` / `AGENTS.md`, not by adding items here.
+backlog is complete. Further work is tracked in [Roadmap](ROADMAP.md) and current
+GitHub issues/PRs; agent contracts deliberately do not carry product-state backlogs.
 
 ## 1. Implement Admin Bootstrap and Local Login
 
@@ -127,6 +127,6 @@ Acceptance criteria:
 - Rate limits.
 - Review queue (`/discoveries`) by default: observations are imported on
   approval rather than auto-created. See ADR 0005 for the rationale; a per-agent
-  auto-import trust setting is a follow-up.
+  auto-import trust setting was added after this initial issue (see current discovery docs).
 - App-pull agent enrollment (auto on boot + on-demand "Discover"), one-click
   approval.

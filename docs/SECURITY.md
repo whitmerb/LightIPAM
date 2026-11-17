@@ -2,7 +2,9 @@
 
 ## Core Rule
 
-Do not trunk every network into the web application container. Deploy scanner agents into network zones instead. Keep the app on a management network and make agents initiate outbound connections when possible.
+Do not trunk every network into the web application container. Deploy scanner agents into network zones instead. Keep the app on a management network. Current transport is app-initiated mTLS
+requests to agents; online agent-pull enrollment/renewal is a future design, not
+today's connectivity direction.
 
 ## Container Boundaries
 
@@ -12,7 +14,8 @@ The app container should:
 - Be read-only where practical.
 - Drop all Linux capabilities.
 - Avoid direct layer-2 access to scanned networks.
-- Store secrets only through environment or a secret manager.
+- Receive master keys through operator-managed environment/secret storage; persist
+  application-managed secret values only in sealed form.
 
 Scanner containers may need capabilities such as `NET_RAW`, but only on hosts and networks where scanning is approved.
 
@@ -20,7 +23,9 @@ Scanner containers may need capabilities such as `NET_RAW`, but only on hosts an
 
 The quick-start in `README.md` serves plain HTTP, which is fine for loopback/dev
 use but sends session, CSRF, and OIDC-state cookies without the `Secure`
-attribute — they traverse cleartext. Before deploying past localhost:
+attribute — they traverse cleartext. The default Compose port mapping listens on all host interfaces; visiting a
+localhost URL does not make that deployment local-only. Restrict the published port
+for local evaluation. Before network exposure:
 
 - Terminate TLS in front of the app with a reverse proxy (nginx, Caddy, Traefik).
 - Set `COOKIE_SECURE=true` so those cookies get `Secure`, and so the app emits
@@ -33,13 +38,12 @@ something to change silently.
 
 ## Agent Trust
 
-Agents should use:
-
-- mTLS for app-to-agent or agent-to-app communication.
-- Per-agent identities and revocation.
-- Signed scan jobs with explicit allowed CIDRs.
-- Rate limits and concurrency limits.
-- Local allowlists and denylists that cannot be bypassed by the app UI alone.
+Agents use app-to-agent mTLS, certificate/client identity checks, per-agent status,
+explicit job CIDRs and independent local allowlist validation. Transport integrity
+comes from TLS; jobs do not have a separate application-level signature. The app
+can disable/revoke an agent record; managed leaf certificates use short TTLs rather
+than a CRL. Scan budgets/rate limits bound discovery. A configurable local denylist
+is not implemented.
 
 ### Outbound-URL SSRF guards
 
@@ -58,16 +62,17 @@ admins trusting what they configure.
 
 ## Product Security Features
 
-Minimum viable security features:
+Implemented controls:
 
-- Local admin bootstrap followed by forced password rotation.
+- Local admin bootstrap, user password change and administrative reset (no forced
+  first-login password rotation).
 - Argon2id password hashing.
-- TOTP or WebAuthn MFA.
+- TOTP MFA with one-time recovery codes; WebAuthn is not implemented.
 - Role-based access control.
 - Immutable audit log for login, config, scan, and IPAM mutations.
 - CSRF protection for browser forms.
 - Secure session cookies.
-- Optional OIDC integration for production.
+- Optional OIDC authorization-code/PKCE integration for production.
 - Baseline security headers on every response: CSP (`default-src 'self'`,
   `base-uri 'self'`, `object-src 'none'`, no inline JS/CSS), `X-Frame-Options: DENY`,
   `X-Content-Type-Options: nosniff`, `Referrer-Policy: same-origin`, and — when
@@ -85,8 +90,9 @@ account there. That blanket exemption does **not** cover API token creation:
 `accountTokenCreate`, gating token creation to admins even though the account
 path itself is otherwise self-service. This keeps a hard bound on how many
 long-lived credentials can touch `/api/v1`, at the cost of viewers needing an
-admin to mint a token on their behalf. Token **deletion** stays self-service for
-every role — revoking your own token is not a privilege concern.
+admin to review the required integration identity and access policy. There is no
+built-in admin UI to mint a token owned by a different viewer. Token **deletion**
+stays self-service for every role — revoking your own token is not a privilege concern.
 
 ## Scan Safety
 
@@ -118,3 +124,15 @@ only on live hosts — so probing is never aimed at dead address space. Privileg
 DNS, and DHCP backends are ordinary unicast UDP or a file read. UDP/NSE-style
 scripting and authenticated checks remain future work.
 
+## Operational security limitations
+
+`APP_SECRET` supplies fallback encryption-key material; database session IDs and
+API bearer tokens are independently stored credentials. Changing it does not revoke
+those credentials. Use explicit session/token revocation during compromise response.
+A wrong sealing key can prevent MFA/OIDC/managed-CA/webhook secret use; complete
+automated re-sealing/key-ring rotation is not implemented. Review the
+[key rotation runbook](KEY_ROTATION.md) and the roadmap before changing keys.
+
+The [handoff](HANDOFF.md) distinguishes implemented controls, development-only
+workflows and proposed security changes. Future issuer-bound OIDC identity/linking
+policy, key rotation, token lifecycle and CSS dependency work require scoped decisions.
