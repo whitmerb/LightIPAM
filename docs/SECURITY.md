@@ -63,6 +63,7 @@ Minimum viable security features:
 - Local admin bootstrap followed by forced password rotation.
 - Argon2id password hashing.
 - TOTP or WebAuthn MFA.
+- MFA recovery codes are single-use, including concurrent verification attempts.
 - Role-based access control.
 - Immutable audit log for login, config, scan, and IPAM mutations.
 - CSRF protection for browser forms.
