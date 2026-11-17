@@ -17,6 +17,7 @@ migration, requires a major-version bump.
 
 ### Fixed
 
+- Webhook deliveries no longer follow redirects; 3xx responses are recorded as failures.
 - OIDC login no longer replaces an existing account's subject when another
   identity presents the same username.
 - Device and address deletion now stays consistent across the Devices and
