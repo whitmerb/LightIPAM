@@ -12,6 +12,8 @@ migration, requires a major-version bump.
 
 ### Fixed
 
+- CSV imports now enforce a consistent 1 MiB file limit at preview and apply,
+  with request limits that account for browser form encoding.
 - Device and address deletion now stays consistent across the Devices and
   Subnets views, and a deleted imported host returns to the discovery review
   queue as a new, importable observation when a later scan finds it again.
