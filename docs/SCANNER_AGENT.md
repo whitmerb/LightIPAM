@@ -37,6 +37,7 @@ the agent's `AGENT_ALLOWED_CIDRS`, the agent rejects them.
 | GET    | `/healthz`  | Liveness; reports service and protocol version.    |
 | GET    | `/register` | Self-reported identity + allowlist for enrollment. |
 | POST   | `/jobs`     | Receive a `ScanJob`, return a `ScanResult`.        |
+| GET    | `/diagnostics` | Read routing/source/egress diagnostics over mTLS. |
 
 `POST /jobs` returns `200` with a `succeeded` result for a valid job, `422` with
 a `rejected` result for an allowlist/validation failure, and `400` for a
@@ -103,7 +104,9 @@ read-only.
 
 Production deployments should issue app and agent bundles from LightIPAM's
 managed CA and rotate them through the operator workflow rather than relying on
-this development generator. See ADRs 0002 and 0018. Online agent-pull enrollment
+this development generator. Agent leaf keypairs hot-reload under the same CA;
+replacing the trusted CA requires restarting the agent. The app must restart after
+its dispatch identity or CA files change. See ADRs 0002 and 0018. Online agent-pull enrollment
 is not implemented; operators still deploy issued bundles to the agent.
 
 ### Certificate file ownership on Linux

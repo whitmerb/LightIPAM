@@ -4,6 +4,13 @@ How to recover a Light IPAM deployment from loss of the host, the database, or t
 secrets. Pairs with `docs/BACKUP_RESTORE.md` (database) and `docs/KEY_ROTATION.md`
 (keys/certs).
 
+## Compose context
+
+Select the same Compose file/project and preserve its named volumes. Published
+image deployments use `export COMPOSE_FILE=compose.release.yaml`; source-build
+installations use `compose.yaml`. Commands below inherit that selection. Set the
+same operator-managed database credentials and encryption material before restoring.
+
 ## What state matters
 
 | State | Where | Backed up by |
@@ -16,8 +23,9 @@ secrets. Pairs with `docs/BACKUP_RESTORE.md` (database) and `docs/KEY_ROTATION.m
 > **Critical:** sealed secrets (TOTP secrets, the OIDC client secret, the managed-CA
 > private key) are encrypted with the app key. A database backup is only useful with
 > the **matching** `APP_SECRET`/`APP_ENCRYPTION_KEY`. Store the key separately from the
-> dumps, and never lose it — losing it means re-enrolling MFA, re-entering the OIDC
-> secret, and re-generating the managed CA.
+> dumps, and never lose it — losing it prevents normal decryption and may block MFA recovery-code login. A
+> controlled recovery/re-provisioning plan is required for TOTP, OIDC, managed CA
+> and webhook secrets; there is no complete automatic re-seal/recovery command.
 
 ## Scenario A: app container lost, data intact
 
@@ -44,7 +52,7 @@ run on boot.
 
 3. Confirm the applied migration version in `/readyz` is ≥ the dump's `migNN`.
 
-See `docs/BACKUP_RESTORE.md` for the detailed and tested procedure.
+See `docs/BACKUP_RESTORE.md` for the detailed restore procedure.
 
 ## Scenario C: total host loss
 
@@ -57,14 +65,16 @@ See `docs/BACKUP_RESTORE.md` for the detailed and tested procedure.
    - Settings → **Agent certificates** → *Rotate CA* only if the CA key was lost;
      otherwise the restored DB already contains the managed CA.
    - Issue fresh agent + app bundles from the **Agent certificates** tab and deploy
-     them to the agent's and app's certificate volumes.
+     them to the agent's and app's certificate volumes. Restart the app to reload its
+     dispatch identity/trust, and restart agents if the trusted CA changed.
 6. Approve agents under `/agents` as needed.
 
 ## Scenario D: suspected key/cert compromise
 
-See `docs/KEY_ROTATION.md`. In short: rotate `APP_SECRET`/`APP_ENCRYPTION_KEY` (with
-re-seal), rotate the managed CA, re-issue agent/app certs, and force "log out
-everywhere" / session revocation.
+Follow [Key rotation](KEY_ROTATION.md). Revoke affected sessions and API tokens
+explicitly; rotating `APP_SECRET` does not revoke database credentials. Scope CA/leaf
+rotation separately from encryption-key migration, and rehearse the latter before
+changing keys against valuable data.
 
 ## Verification checklist
 

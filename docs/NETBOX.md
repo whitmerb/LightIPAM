@@ -7,6 +7,10 @@ links). A NetBox upload is translated into Light IPAM's native columns and then 
 through the **exact same dry-run preview and all-or-nothing apply** as a native CSV —
 nothing changes until you confirm, and an invalid file is never partially applied.
 
+The shared upload path accepts CSV files up to 1 MiB, with the same limit at preview
+and apply. Split larger inputs; browser newline conversion does not increase the
+logical apply limit.
+
 Import order still matters: import **devices**, then **subnets** (prefixes), then
 **addresses**, so device links and subnet containment resolve.
 

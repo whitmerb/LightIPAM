@@ -1,19 +1,18 @@
-# Audit findings tracker
+# Historical audit findings tracker
 
-Findings from a full shakedown/audit of the running app (2026-07-10), not yet
-triaged into fix PRs. Each file documents one finding: what was observed, why it
-matters, priority, and detailed instructions for the implementer. **These docs
-describe problems only — no code has changed.** Fixing any of them is a separate,
-future PR that should reference the relevant file here.
+Historical tracker for the 2026-07-10 audit. Those findings were fixed, closed or
+investigated and their individual files removed; shipped outcomes are recorded in
+[Changelog](../../../CHANGELOG.md). This directory is not a claim that there is no
+other engineering debt. Current improvements live in [Roadmap](../../ROADMAP.md).
 
 Once a finding is fixed, delete its file from this directory and fold a one-line
 mention into `CHANGELOG.md` under the release that shipped the fix (see
 [Documentation sync](../../../AGENTS.md#documentation-sync)) — don't let a fixed
 finding linger here alongside shipped history.
 
-## Open findings
+## Open July audit findings
 
-None currently open.
+None. Later hardening and engineering debt are recorded in the changelog/roadmap.
 
 ## Priority key
 

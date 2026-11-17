@@ -57,20 +57,27 @@ This is the agent-facing snapshot of current implementation constraints.
 - nmap is **TCP-only** (no UDP/NSE); VLAN mapping covers the **access VLAN only**.
 - DHCP ingestion reads a **mounted lease file** (ISC dhcpd / dnsmasq) — no API/SNMP source.
 - **Online agent-pull cert enrollment is not built** (the one deferred Phase 5 item):
-  the managed CA issues + rotates and the agent hot-reloads operator-deployed certs.
+  the managed CA issues + rotates and the agent hot-reloads operator-deployed leaf
+  keypairs; changed CA trust requires agent restart.
 
-## Open findings
+## Open findings and engineering debt
 
 The 2026-07-10 audit findings are all fixed, closed, or investigated. See
-[`docs/agent/findings/`](findings/README.md) for the empty tracker and
-[`CHANGELOG.md`](../../CHANGELOG.md) for the shipped fixes.
+[`docs/agent/findings/`](findings/README.md) for the closed historical tracker and
+[`CHANGELOG.md`](../../CHANGELOG.md) for the fixes. Separate current engineering debt
+includes the unresolved CSS toolchain audit path, database coverage not yet enabled
+in the release job (PR/main CI now runs store regressions), MFA attempt-budget
+policy, and unautomated encryption-key re-sealing. These are
+tracked in the planning backlog, not as reopened July audit findings.
 
 ## What's next
 
-**The next phase is open — confirm direction with the maintainer before starting.**
-Do not invent future plans. Candidate follow-ups recorded in the roadmap include a
-Terraform provider against `/api/v1`, online agent-pull cert enrollment, optional
-Phase 4 VLAN/interface polish, and the remaining Settings tabs. None is committed.
+**The maintainer requested a 36-item planning backlog; implementation is selected
+one scoped task at a time.** See [Roadmap](../ROADMAP.md#planning-backlog--36-items)
+for priorities, acceptance targets and approval gates, including the CSS toolchain
+major migration. [Handoff](../HANDOFF.md) records operational constraints and supported
+versus legacy methods. No roadmap entry authorizes a new dependency or an invariant
+change, and no delivery dates are committed.
 
 ## Source of truth
 

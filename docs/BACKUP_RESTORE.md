@@ -5,19 +5,32 @@ restores them with `pg_restore`. The web app stays unprivileged: `pg_dump`/
 `pg_restore` are ordinary database clients over TCP — no raw sockets, no extra
 Linux capabilities.
 
+## Compose context
+
+Use the same file/project/volumes as the installed deployment. For published images:
+
+```sh
+export COMPOSE_FILE=compose.release.yaml
+```
+
+This also applies to `deploy/restore.sh`, which delegates to `docker compose`.
+For custom database names/users, the helper reads exported `POSTGRES_DB` and
+`POSTGRES_USER` from the host; values in `.env` are not automatically shell exports.
+The direct container commands below use the database service's configured values.
+
 ## What is backed up
 
 A backup is a single `pg_dump -Fc` (custom-format) file of the whole `lightipam`
 database: subnets, addresses, devices, MACs, users (including hashed passwords,
 sealed TOTP secrets, and OIDC subject links), sessions, audit logs, scan
-agents/jobs/discoveries, and `app_settings`. The filename encodes the time and
+agents/jobs/discoveries, managed CA, webhook settings/delivery history, and `app_settings`. The filename encodes the time and
 the **schema-migration version** the dump was taken at, e.g.
 
 ```
 lightipam-20260619-143005-mig16.dump
 ```
 
-> Secrets at rest (TOTP secrets, the OIDC client secret) are sealed with the
+> Secrets at rest (TOTP, OIDC, managed-CA key and webhook signing secrets) are sealed with the
 > app's encryption key (`APP_ENCRYPTION_KEY`, or derived from `APP_SECRET`). A
 > backup is therefore only restorable into an app configured with the **same**
 > key. Back up your `APP_SECRET`/`APP_ENCRYPTION_KEY` alongside your dumps.
@@ -32,8 +45,8 @@ lightipam-20260619-143005-mig16.dump
 - **Manually / on a schedule** (e.g. cron on the host):
 
   ```sh
-  docker compose exec -T db \
-    pg_dump -Fc --no-owner --no-privileges -U lightipam lightipam \
+  docker compose exec -T db sh -c \
+    'exec pg_dump -Fc --no-owner --no-privileges -U "$POSTGRES_USER" "$POSTGRES_DB"' \
     > "lightipam-$(date -u +%Y%m%d-%H%M%S).dump"
   ```
 
@@ -55,11 +68,12 @@ window with the app stopped.
    # Drop & recreate the schema objects from the dump, then load data.
    cat lightipam-20260619-143005-mig16.dump | \
      docker compose exec -T db \
-     pg_restore --clean --if-exists --no-owner --no-privileges \
-       -U lightipam -d lightipam
+     sh -c 'exec pg_restore --clean --if-exists --exit-on-error --no-owner --no-privileges -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
    ```
 
-   `deploy/restore.sh <dump-file>` wraps this for the compose stack.
+   `deploy/restore.sh <dump-file>` provides the basic clean/if-exists restore wrapper
+   for the Compose stack; the direct example above additionally stops on the first
+   restore error. Both require the app to be stopped first.
 
 3. **Start the app.** On boot it runs embedded migrations, so a dump taken at an
    **older** migration is upgraded forward automatically:
@@ -88,20 +102,18 @@ docker compose up -d app
   is in the dump filename and shown in the Backup tab so you can check before
   restoring.
 
-## Tested procedure
+## Restore qualification
 
-The restore path above is the supported one. To verify it end-to-end:
+Run a drill only in a disposable Compose project with its own database/backup
+volumes and the matching encryption material. Seed recognizable inventory, create
+a dump, stop its app, restore into its fresh database, and verify readiness,
+inventory/audit counts, authentication and sealed-secret-dependent functions. Do not
+wipe the production schema or restore while the app is writing. A readiness response
+alone is not proof that every backed-up record or secret is recoverable.
 
-```sh
-# 1. Seed some data, then back up.
-docker compose exec -T db pg_dump -Fc -U lightipam lightipam > test.dump
-# 2. Wipe and restore.
-docker compose exec -T db psql -U lightipam -d lightipam -c 'DROP SCHEMA public CASCADE; CREATE SCHEMA public;'
-cat test.dump | docker compose exec -T db pg_restore --clean --if-exists --no-owner --no-privileges -U lightipam -d lightipam
-# 3. Confirm the app is ready and data is present.
-docker compose restart app
-docker compose exec app wget -qO- http://127.0.0.1:8080/readyz
-```
+Automating these drills and upgrade compatibility is planned in
+[R09](ROADMAP.md#r09) and [R11](ROADMAP.md#r11). This runbook does not claim a drill
+was performed on any particular user deployment.
 
 ## Disaster recovery
 

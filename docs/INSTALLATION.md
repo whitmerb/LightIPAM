@@ -59,9 +59,11 @@ docker compose --env-file .env -f compose.release.yaml ps
 Open <http://localhost:8080> and create the first administrator. To publish a
 different host port, set `APP_PORT` in `.env`.
 
-This quick path is intentionally local-only: it serves plain HTTP and defaults
-`COOKIE_SECURE` to `false`. Before exposing it on a network, follow the
-production steps below.
+This evaluation path serves plain HTTP and defaults `COOKIE_SECURE` to `false`.
+Compose publishes the host port on all interfaces unless explicitly bound otherwise;
+a localhost URL does not restrict network access. Use host access controls or a
+loopback-only port binding for local evaluation. Before network exposure, follow
+the production steps below.
 
 ## Production-style deployment
 

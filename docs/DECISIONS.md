@@ -1,5 +1,8 @@
 # Technical Decisions
 
+This is an as-built orientation; numbered [ADRs](adr) record decisions and their
+historical context. Current status lives in [Project state](agent/PROJECT_STATE.md).
+
 ## Language
 
 Use Go for the first version.
@@ -20,9 +23,10 @@ Reasons:
 
 - Keeps the UI fast and lightweight.
 - Gives the product a polished interface without committing to a heavy single-page app.
-- Keeps app interactions server-owned while leaving room for HTMX or TypeScript when address grids, filters, modals, and scan review queues need richer behavior.
+- Keeps app interactions server-owned. Small same-origin JavaScript files progressively
+  enhance selected forms; no client framework, HTMX or TypeScript toolchain is required.
 
-Use TypeScript only where browser-side complexity is justified.
+A new browser dependency/toolchain requires the normal maintainer decision and CSP review.
 
 ## Database
 
@@ -63,7 +67,9 @@ Server-driven, no client JS; conflicts are never bulk-imported. See ADR 0026.
 
 ## Authentication
 
-Start with local auth and a web-based first-admin bootstrap page. Support OIDC later for production environments that need centralized identity.
+Local auth and web-based first-admin bootstrap are shipped. OIDC authorization-code
+flow with PKCE, TOTP MFA/recovery codes, and admin/viewer roles are also shipped
+(ADR 0018). WebAuthn and mandatory first-login rotation are not implemented.
 
 Minimum production controls:
 

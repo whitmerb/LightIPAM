@@ -45,7 +45,7 @@ consistent.
 
 ## Verification
 
-Run before opening a PR (or run `./scripts/verify.sh`, which does the first four; add
+Run before opening a PR (or run `./scripts/verify.sh`, which runs Tier 0; add
 `--docker` for the image builds). See [docs/agent/VALIDATION.md](docs/agent/VALIDATION.md)
 for the tiered detail and troubleshooting; CI runs the same checks.
 
@@ -58,8 +58,18 @@ docker compose build                    # app image
 docker compose --profile scanner build  # agent image, if the agent changed
 ```
 
-`go build ./cmd/...` can drop stray `/scanner-agent` and `/server` binaries at the
+`go build ./cmd/server` or `go build ./cmd/scanner-agent` can drop stray `/scanner-agent` and `/server` binaries at the
 repo root; both are gitignored — do not commit them.
+
+Database store changes must also run the PostgreSQL integration suite with
+`LIGHTIPAM_TEST_DATABASE_URL`; PR/main CI provisions that database automatically,
+while local runs skip the suite if the variable is absent.
+See the validation guide for an isolated database example. Dependency audit results
+are reported separately from build/test results.
+
+The [engineering handoff](docs/HANDOFF.md) covers current tooling and compatibility;
+the [release guide](docs/RELEASING.md) describes authorized squash merges, tags and
+image verification. Merging main does not publish images.
 
 ## Code layout
 
