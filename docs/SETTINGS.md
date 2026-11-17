@@ -47,9 +47,8 @@ elevated scanner agent:
 - The app's **Scanning** tab therefore holds only **dispatch-time defaults** for jobs
   the app sends over mTLS (default scan type/mode, timeouts, rate cap, default
   targets) — not the agent's nmap/SNMP/DHCP credentials or capabilities.
-- App-managed **secrets** that do belong in settings (e.g. a future OIDC client
-  secret) must be **encrypted at rest** (Phase 5), never stored or rendered in
-  plaintext.
+- App-managed **secrets** that belong in settings (including the OIDC client
+  secret) must be **encrypted at rest**, never stored or rendered in plaintext.
 
 ## Tabs
 
