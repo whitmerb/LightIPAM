@@ -10,6 +10,10 @@ migration, requires a major-version bump.
 
 ## [Unreleased]
 
+### Fixed
+
+- Make all navigation and sign-out available on small screens.
+
 ## [1.2.2] - 2026-11-17
 
 A backward-compatible maintenance release covering identity and request hardening,
