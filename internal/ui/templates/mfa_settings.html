@@ -37,7 +37,7 @@
         <input type="hidden" name="csrf_token" value="{{ .CSRF }}">
         <label class="block">
           <span class="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-200">Confirm a current code to turn off</span>
-          <input class="form-input" name="code" inputmode="numeric" autocomplete="one-time-code" required>
+          <input class="form-input" name="code" autocomplete="one-time-code" required>
         </label>
         <div>
           <button class="inline-flex h-11 items-center justify-center rounded-xl bg-rose-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-700 focus:outline-none focus:ring-4 focus:ring-rose-300 dark:focus:ring-rose-900" type="submit">Turn off two-factor</button>

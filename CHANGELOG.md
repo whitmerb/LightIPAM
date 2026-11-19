@@ -10,6 +10,11 @@ migration, requires a major-version bump.
 
 ## [Unreleased]
 
+### Fixed
+
+- MFA sign-in and disable forms offer a text keyboard so mobile users can enter
+  alphanumeric recovery codes; TOTP-only enrollment keeps its numeric keyboard.
+
 ## [1.2.2] - 2026-11-17
 
 A backward-compatible maintenance release covering identity and request hardening,

@@ -80,6 +80,8 @@ Implemented controls:
 - Argon2id password hashing.
 - TOTP MFA with one-time recovery codes; WebAuthn is not implemented.
 - MFA recovery codes are single-use, including concurrent verification attempts.
+  The sign-in and disable forms accept an authenticator code or an alphanumeric
+  recovery code; enrollment confirmation requires an authenticator code.
 - Role-based access control.
 - Immutable audit log for login, config, scan, and IPAM mutations.
 - CSRF protection for browser forms.
