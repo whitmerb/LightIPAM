@@ -50,9 +50,12 @@ observations that flow through the discovery review queue.
 
 PostgreSQL is the source of truth, with native `inet`, `cidr` and `macaddr` columns.
 Application writes use parameterized containment/overlap queries (`cidr && $1`);
-there is no VRF-scoped overlap exception. Subnet CIDR edits and application address
-membership writes coordinate through transaction advisory locks and fresh containment
-checks. These locks are not a database trigger for arbitrary external SQL.
+there is no VRF-scoped overlap exception. Subnet creates, CIDR edits and subnet
+imports take the same exclusive transaction advisory lock before checking current
+overlaps and writing. Imports allow exact-CIDR metadata upserts and check earlier
+batch rows in the same transaction. Application address membership writes take
+shared locks and make fresh containment checks. These locks are not a database
+trigger for arbitrary external SQL.
 
 ## Discovery Pipeline
 

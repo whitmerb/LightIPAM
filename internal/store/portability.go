@@ -101,15 +101,26 @@ ORDER BY ip.address`)
 }
 
 // ImportSubnets upserts the given subnets by CIDR in one transaction. The caller
-// must have validated each CIDR (IPv4, no overlap) and resolved each site.
+// must have validated each CIDR (IPv4) and resolved each site. Overlap is checked
+// again under the subnet write lock; exact CIDR matches remain metadata updates.
 func (s *Store) ImportSubnets(ctx context.Context, rows []SubnetImport) error {
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin subnet import: %w", err)
 	}
 	defer tx.Rollback(ctx)
+	if err := lockSubnetContainment(ctx, tx, true); err != nil {
+		return err
+	}
 
 	for _, r := range rows {
+		var overlap bool
+		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM subnets WHERE cidr && $1::cidr AND cidr <> $1::cidr)`, r.CIDR).Scan(&overlap); err != nil {
+			return fmt.Errorf("check subnet import overlap %s: %w", r.CIDR, err)
+		}
+		if overlap {
+			return fmt.Errorf("import subnet %s: %w", r.CIDR, ErrOverlap)
+		}
 		id, err := auth.RandomToken(18)
 		if err != nil {
 			return err

@@ -169,22 +169,37 @@ GROUP BY s.id, si.name`, id)
 }
 
 func (s *Store) CreateSubnet(ctx context.Context, input SubnetInput) (Subnet, error) {
-	if err := s.ensureNoSubnetOverlap(ctx, "", input.CIDR); err != nil {
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
 		return Subnet{}, err
+	}
+	defer tx.Rollback(ctx)
+	if err := lockSubnetContainment(ctx, tx, true); err != nil {
+		return Subnet{}, err
+	}
+	var overlap bool
+	if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM subnets WHERE cidr && $1::cidr)`, input.CIDR).Scan(&overlap); err != nil {
+		return Subnet{}, err
+	}
+	if overlap {
+		return Subnet{}, ErrOverlap
 	}
 	id, err := auth.RandomToken(18)
 	if err != nil {
 		return Subnet{}, err
 	}
-	if _, err := s.db.Exec(ctx, `
+	if _, err := tx.Exec(ctx, `
 INSERT INTO subnets (id, site_id, cidr, name, vlan, description)
 VALUES ($1, $2, $3::cidr, $4, $5, $6)`, id, emptyToNil(input.SiteID), input.CIDR, input.Name, input.VLAN, input.Description); err != nil {
 		return Subnet{}, fmt.Errorf("create subnet: %w", err)
 	}
+	if err := tx.Commit(ctx); err != nil {
+		return Subnet{}, err
+	}
 	return s.GetSubnet(ctx, id)
 }
 
-// The two-part advisory key serializes CIDR edits with address membership writes.
+// The two-part advisory key serializes subnet writes with address membership writes.
 // Shared writer locks allow address operations to proceed concurrently.
 func lockSubnetContainment(ctx context.Context, tx pgx.Tx, exclusive bool) error {
 	query := `SELECT pg_advisory_xact_lock_shared(1279872333, 1)`
@@ -390,23 +405,6 @@ WHERE d.id = $1
 		return fmt.Errorf("commit address delete: %w", err)
 	}
 	return nil
-}
-
-func (s *Store) ensureNoSubnetOverlap(ctx context.Context, existingID, cidr string) error {
-	var overlapID string
-	err := s.db.QueryRow(ctx, `
-SELECT id
-FROM subnets
-WHERE cidr && $1::cidr
-AND ($2 = '' OR id <> $2)
-LIMIT 1`, cidr, existingID).Scan(&overlapID)
-	if err == nil {
-		return ErrOverlap
-	}
-	if errors.Is(err, pgx.ErrNoRows) {
-		return nil
-	}
-	return fmt.Errorf("check subnet overlap: %w", err)
 }
 
 func scanSubnet(scanner subnetScanner) (Subnet, error) {
