@@ -17,6 +17,14 @@ file** — a stale snapshot here is worse than none.
 - Stable surfaces (SemVer-guarded): the JSON API `/api/v1` and the scanner protocol
   `v1`. A breaking change to either, or a destructive migration, is a major bump.
 
+## Unreleased maintenance
+
+- Subnet creates and imports now participate in the CIDR-edit advisory-lock
+  protocol and recheck overlap before writing. PostgreSQL regressions cover stale
+  imports, atomic rollback, exact-CIDR upserts, competing create/update/import
+  writers and lock-wait cancellation. This is a scoped part of Roadmap R02;
+  representative large-import qualification remains open. Schema stays at 23.
+
 ## Completed work
 
 **Phases 1–6 are complete.** In brief (details in the roadmap and ADRs):

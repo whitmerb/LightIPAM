@@ -10,6 +10,13 @@ migration, requires a major-version bump.
 
 ## [Unreleased]
 
+### Fixed
+
+- Subnet creation and CSV subnet imports serialize overlap checks with concurrent
+  subnet writes. Imports recheck the current database and earlier batch rows before
+  each upsert, reject partial overlaps atomically, and preserve exact-CIDR metadata
+  updates even when an import preview has become stale.
+
 ## [1.2.2] - 2026-11-17
 
 A backward-compatible maintenance release covering identity and request hardening,
