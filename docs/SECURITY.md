@@ -93,6 +93,10 @@ Implemented controls:
 
 ### RBAC scope
 
+Role changes and user deletion coordinate in database transactions to prevent
+concurrent application writes from removing the last admin. Direct SQL writes
+do not participate in this application-level guard.
+
 The `authorize` middleware (`internal/app/authz.go`) exempts every `/account/*`
 path from the admin-only write check — this is intentional: it's a per-user
 self-service surface (password change, MFA enrollment, session sign-out) that
