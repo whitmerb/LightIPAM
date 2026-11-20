@@ -132,6 +132,47 @@ func (c *client) show(method, path string, body any) error {
 	return nil
 }
 
+// update overlays explicit flags on the current writable fields because the API
+// PUT handlers replace those fields. Read-only response fields must not be sent.
+func (c *client) update(path string, changes map[string]any, strFields, intFields []string) error {
+	status, out, err := c.do(http.MethodGet, path, nil)
+	if err != nil {
+		return err
+	}
+	if status < 200 || status >= 300 {
+		return fmt.Errorf("GET %s: HTTP %d: %s", path, status, apiErrorMessage(out))
+	}
+	var current map[string]json.RawMessage
+	if err := json.Unmarshal(out, &current); err != nil {
+		return fmt.Errorf("GET %s: invalid JSON response: %w", path, err)
+	}
+	body := map[string]any{}
+	for _, field := range strFields {
+		var value *string
+		if err := json.Unmarshal(current[field], &value); err != nil || value == nil {
+			return fmt.Errorf("GET %s: missing or invalid string field %q", path, field)
+		}
+		if field == "site_id" && *value == "" {
+			siteID, _ := changes[field].(string)
+			if strings.TrimSpace(siteID) == "" {
+				return fmt.Errorf("GET %s: the API cannot preserve an unset site; choose a site with --site_id before updating", path)
+			}
+		}
+		body[field] = *value
+	}
+	for _, field := range intFields {
+		var value *int
+		if err := json.Unmarshal(current[field], &value); err != nil {
+			return fmt.Errorf("GET %s: missing or invalid integer field %q", path, field)
+		}
+		body[field] = value // A null VLAN remains null.
+	}
+	for field, value := range changes {
+		body[field] = value
+	}
+	return c.show(http.MethodPut, path, body)
+}
+
 // resource handles the standard list/get/create/update/delete verbs for a
 // top-level resource collection. strFields/intFields name the create/update body
 // flags (string and integer typed, respectively).
@@ -170,7 +211,7 @@ func (c *client) resource(args []string, name string, strFields, intFields []str
 		if err != nil {
 			return err
 		}
-		return c.show("PUT", base+"/"+id, body)
+		return c.update(base+"/"+id, body, strFields, intFields)
 	default:
 		return fmt.Errorf("unknown %s subcommand %q", name, args[0])
 	}
@@ -216,15 +257,15 @@ func (c *client) addresses(args []string) error {
 		if err != nil {
 			return err
 		}
-		return c.show("PUT", "/api/v1/addresses/"+args[1], body)
+		return c.update("/api/v1/addresses/"+args[1], body, strFields, nil)
 	default:
 		return fmt.Errorf("unknown addresses subcommand %q", args[0])
 	}
 }
 
 // parseFields builds a JSON request body from --field flags, including only the
-// flags the user actually set (so an update is a partial change). Integer fields
-// are emitted as JSON numbers.
+// flags the user actually set. Updates overlay these on the current resource;
+// integer fields are emitted as JSON numbers.
 func parseFields(label string, args, strFields, intFields []string) (map[string]any, error) {
 	fs := flag.NewFlagSet(label, flag.ContinueOnError)
 	strVals := map[string]*string{}
