@@ -79,18 +79,15 @@ func (a *App) userSetRole(w http.ResponseWriter, r *http.Request) {
 		a.renderUsersTab(w, r, session, nil, "Choose a valid role.", "")
 		return
 	}
-	// Guard against removing the last admin: demoting the only admin would lock
-	// everyone out of user and settings management.
-	if target.IsAdmin && role != store.RoleAdmin {
-		if last, err := a.isLastAdmin(r, target.ID); err != nil {
-			http.Error(w, "Unable to update role", http.StatusInternalServerError)
-			return
-		} else if last {
+	if err := a.store.SetUserRole(r.Context(), target.ID, role); err != nil {
+		if errors.Is(err, store.ErrLastAdmin) {
 			a.renderUsersTab(w, r, session, nil, "You cannot remove the last admin. Promote another user first.", "")
 			return
 		}
-	}
-	if err := a.store.SetUserRole(r.Context(), target.ID, role); err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			http.NotFound(w, r)
+			return
+		}
 		a.logger.Error("set user role", "error", err)
 		http.Error(w, "Unable to update role", http.StatusInternalServerError)
 		return
@@ -165,16 +162,15 @@ func (a *App) userDelete(w http.ResponseWriter, r *http.Request) {
 		a.renderUsersTab(w, r, session, nil, "You cannot delete your own account.", "")
 		return
 	}
-	if target.IsAdmin {
-		if last, err := a.isLastAdmin(r, target.ID); err != nil {
-			http.Error(w, "Unable to delete user", http.StatusInternalServerError)
-			return
-		} else if last {
+	if err := a.store.DeleteUser(r.Context(), target.ID); err != nil {
+		if errors.Is(err, store.ErrLastAdmin) {
 			a.renderUsersTab(w, r, session, nil, "You cannot delete the last admin.", "")
 			return
 		}
-	}
-	if err := a.store.DeleteUser(r.Context(), target.ID); err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			http.NotFound(w, r)
+			return
+		}
 		a.logger.Error("delete user", "error", err)
 		http.Error(w, "Unable to delete user", http.StatusInternalServerError)
 		return
@@ -201,16 +197,6 @@ func (a *App) loadManagedUser(w http.ResponseWriter, r *http.Request) (store.Ses
 		return store.Session{}, store.User{}, false
 	}
 	return session, target, true
-}
-
-// isLastAdmin reports whether the given admin user is the only admin left.
-func (a *App) isLastAdmin(r *http.Request, userID string) (bool, error) {
-	count, err := a.store.CountAdmins(r.Context())
-	if err != nil {
-		a.logger.Error("count admins", "error", err)
-		return false, err
-	}
-	return count <= 1, nil
 }
 
 // renderUsersTab renders the Settings page on its Users tab.

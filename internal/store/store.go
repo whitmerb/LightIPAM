@@ -174,8 +174,7 @@ func (s *Store) SetUserRole(ctx context.Context, id, role string) error {
 	if !ValidRole(role) {
 		return fmt.Errorf("invalid role %q", role)
 	}
-	if _, err := s.db.Exec(ctx, `UPDATE users SET role = $2, is_admin = $3, updated_at = now() WHERE id = $1`,
-		id, role, role == RoleAdmin); err != nil {
+	if err := s.changeUserRoleOrDelete(ctx, id, &role); err != nil {
 		return fmt.Errorf("set user role: %w", err)
 	}
 	return nil
@@ -191,10 +190,48 @@ func (s *Store) SetUserPassword(ctx context.Context, id, passwordHash string) er
 
 // DeleteUser removes a user account. Sessions cascade.
 func (s *Store) DeleteUser(ctx context.Context, id string) error {
-	if _, err := s.db.Exec(ctx, `DELETE FROM users WHERE id = $1`, id); err != nil {
+	if err := s.changeUserRoleOrDelete(ctx, id, nil); err != nil {
 		return fmt.Errorf("delete user: %w", err)
 	}
 	return nil
+}
+
+// changeUserRoleOrDelete serializes all role changes and deletions before
+// checking current admin state. A nil role denotes deletion.
+func (s *Store) changeUserRoleOrDelete(ctx context.Context, id string, role *string) error {
+	tx, err := s.db.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.ReadCommitted})
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(1279872333, 2)`); err != nil {
+		return err
+	}
+	var isAdmin bool
+	if err := tx.QueryRow(ctx, `SELECT is_admin FROM users WHERE id = $1`, id).Scan(&isAdmin); err != nil {
+		if err == pgx.ErrNoRows {
+			return ErrNotFound
+		}
+		return err
+	}
+	if isAdmin && (role == nil || *role != RoleAdmin) {
+		var count int
+		if err := tx.QueryRow(ctx, `SELECT count(*) FROM users WHERE is_admin`).Scan(&count); err != nil {
+			return err
+		}
+		if count <= 1 {
+			return ErrLastAdmin
+		}
+	}
+	if role == nil {
+		_, err = tx.Exec(ctx, `DELETE FROM users WHERE id = $1`, id)
+	} else {
+		_, err = tx.Exec(ctx, `UPDATE users SET role = $2, is_admin = $3, updated_at = now() WHERE id = $1`, id, *role, *role == RoleAdmin)
+	}
+	if err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }
 
 func (s *Store) FindUserByUsername(ctx context.Context, username string) (User, error) {
