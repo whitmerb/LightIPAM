@@ -330,7 +330,7 @@ func (a *App) renderDevicesError(w http.ResponseWriter, r *http.Request, session
 func (a *App) renderAddressesBulkError(w http.ResponseWriter, r *http.Request, session store.Session, subnetID, message string) {
 	if subnetID != "" {
 		if subnet, err := a.store.GetSubnet(r.Context(), subnetID); err == nil {
-			a.renderSubnetDetailError(w, r, session, subnet, message)
+			a.renderSubnetDetailError(w, r, session, subnet, nil, message)
 			return
 		}
 	}

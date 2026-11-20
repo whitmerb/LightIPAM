@@ -12,6 +12,31 @@ import (
 	"github.com/devSealWare/LightIPAM/internal/store"
 )
 
+func TestAddressFormsPreserveSubmittedValues(t *testing.T) {
+	data := PageData{
+		Error: "Invalid address", Subnet: store.Subnet{ID: "s1"}, Address: store.IPAddress{ID: "a1"},
+		AddressStates: []string{"reserved", "assigned"}, Devices: []store.Device{{ID: "d1", Name: "Printer"}},
+		Form:         map[string]string{"address": `bad<ip`, "state": "assigned", "device_id": "d1", "hostname": `host"name`, "notes": `note<text`},
+		CustomFields: []store.CustomFieldValue{{Def: store.CustomFieldDef{ID: "f1", Name: "Owner"}, Value: `owner<name`}},
+	}
+	for _, name := range []string{"subnet_detail.html", "address_form.html"} {
+		t.Run(name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			if err := Render(w, name, data); err != nil {
+				t.Fatal(err)
+			}
+			for _, want := range []string{`value="bad&lt;ip"`, `value="assigned" selected`, `value="d1" selected`, `value="host&#34;name"`, `note&lt;text`} {
+				if !strings.Contains(w.Body.String(), want) {
+					t.Errorf("missing %q", want)
+				}
+			}
+			if name == "address_form.html" && !strings.Contains(w.Body.String(), `value="owner&lt;name"`) {
+				t.Error("missing custom field")
+			}
+		})
+	}
+}
+
 func TestRenderTemplates(t *testing.T) {
 	vlan := 20
 	data := PageData{
