@@ -94,32 +94,32 @@
         {{ end }}
         <label class="mt-4 block">
           <span class="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-200">IPv4 address</span>
-          <input class="form-input font-mono" name="address" placeholder="192.168.10.20" required>
+          <input class="form-input font-mono" name="address" value="{{ index .Form "address" }}" placeholder="192.168.10.20" required>
         </label>
         <label class="mt-4 block">
           <span class="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-200">State</span>
           <select class="form-input" name="state">
             {{ range .AddressStates }}
-            <option value="{{ . }}">{{ . }}</option>
+            <option value="{{ . }}" {{ if eq . (index $.Form "state") }}selected{{ end }}>{{ . }}</option>
             {{ end }}
           </select>
         </label>
         <label class="mt-4 block">
           <span class="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-200">Hostname</span>
-          <input class="form-input" name="hostname">
+          <input class="form-input" name="hostname" value="{{ index .Form "hostname" }}">
         </label>
         <label class="mt-4 block">
           <span class="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-200">Device</span>
           <select class="form-input" name="device_id">
             <option value="">Unassigned</option>
             {{ range .Devices }}
-            <option value="{{ .ID }}">{{ .Name }}</option>
+            <option value="{{ .ID }}" {{ if eq .ID (index $.Form "device_id") }}selected{{ end }}>{{ .Name }}</option>
             {{ end }}
           </select>
         </label>
         <label class="mt-4 block">
           <span class="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-200">Notes</span>
-          <textarea class="form-input min-h-24 py-3" name="notes"></textarea>
+          <textarea class="form-input min-h-24 py-3" name="notes">{{ index .Form "notes" }}</textarea>
         </label>
         <button class="button-primary mt-5 w-full" type="submit">Add address</button>
       </form>

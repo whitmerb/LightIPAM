@@ -581,12 +581,12 @@ func (a *App) addressCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	input, err := addressInputFromRequest(r)
 	if err != nil {
-		a.renderSubnetDetailError(w, r, session, subnet, err.Error())
+		a.renderSubnetDetailError(w, r, session, subnet, addressFormFromRequest(r), err.Error())
 		return
 	}
 	address, err := a.store.CreateAddress(r.Context(), subnet, input)
 	if err != nil {
-		a.renderSubnetDetailError(w, r, session, subnet, addressError(err))
+		a.renderSubnetDetailError(w, r, session, subnet, addressFormFromRequest(r), addressError(err))
 		return
 	}
 	a.auditMeta(r, &session.User.ID, "address.created", "ip_address", address.ID, map[string]string{"address": address.Address, "hostname": address.Hostname})
@@ -612,12 +612,12 @@ func (a *App) addressUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 	input, err := addressInputFromRequest(r)
 	if err != nil {
-		a.renderAddressForm(w, r, session, "Edit Address", subnet, address, addressFormFromInput(input), err.Error())
+		a.renderAddressForm(w, r, session, "Edit Address", subnet, address, addressFormFromRequest(r), err.Error())
 		return
 	}
 	updated, err := a.store.UpdateAddress(r.Context(), address.ID, subnet, input)
 	if err != nil {
-		a.renderAddressForm(w, r, session, "Edit Address", subnet, address, addressFormFromInput(input), addressError(err))
+		a.renderAddressForm(w, r, session, "Edit Address", subnet, address, addressFormFromRequest(r), addressError(err))
 		return
 	}
 	a.saveCustomFieldValues(r, store.CustomFieldAddress, updated.ID)
@@ -1450,7 +1450,7 @@ func (a *App) renderSubnetForm(w http.ResponseWriter, r *http.Request, session s
 	})
 }
 
-func (a *App) renderSubnetDetailError(w http.ResponseWriter, r *http.Request, session store.Session, subnet store.Subnet, message string) {
+func (a *App) renderSubnetDetailError(w http.ResponseWriter, r *http.Request, session store.Session, subnet store.Subnet, form map[string]string, message string) {
 	addresses, err := a.store.ListAddresses(r.Context(), subnet.ID)
 	if err != nil {
 		a.logger.Error("list addresses", "error", err)
@@ -1473,6 +1473,7 @@ func (a *App) renderSubnetDetailError(w http.ResponseWriter, r *http.Request, se
 		AddressStates: addressStates(),
 		Devices:       devices,
 		CustomFields:  a.loadCustomFields(r, store.CustomFieldSubnet, subnet.ID),
+		Form:          form,
 		ActiveNav:     "subnets",
 	})
 }
@@ -1487,6 +1488,10 @@ func (a *App) renderAddressForm(w http.ResponseWriter, r *http.Request, session 
 	if form == nil {
 		form = map[string]string{}
 	}
+	customFields := a.loadCustomFields(r, store.CustomFieldAddress, address.ID)
+	if message != "" {
+		customFields = submittedAddressCustomFields(customFields, r)
+	}
 	_ = ui.Render(w, "address_form.html", ui.PageData{
 		Title:         title,
 		Error:         message,
@@ -1496,7 +1501,7 @@ func (a *App) renderAddressForm(w http.ResponseWriter, r *http.Request, session 
 		Address:       address,
 		AddressStates: addressStates(),
 		Devices:       devices,
-		CustomFields:  a.loadCustomFields(r, store.CustomFieldAddress, address.ID),
+		CustomFields:  customFields,
 		Form:          form,
 		ActiveNav:     "subnets",
 	})
@@ -1738,14 +1743,24 @@ func addressFormFromAddress(address store.IPAddress) map[string]string {
 	}
 }
 
-func addressFormFromInput(input store.AddressInput) map[string]string {
+func addressFormFromRequest(r *http.Request) map[string]string {
 	return map[string]string{
-		"address":   input.Address,
-		"state":     input.State,
-		"device_id": input.DeviceID,
-		"hostname":  input.Hostname,
-		"notes":     input.Notes,
+		"address":   r.PostForm.Get("address"),
+		"state":     r.PostForm.Get("state"),
+		"device_id": r.PostForm.Get("device_id"),
+		"hostname":  r.PostForm.Get("hostname"),
+		"notes":     r.PostForm.Get("notes"),
 	}
+}
+
+func submittedAddressCustomFields(fields []store.CustomFieldValue, r *http.Request) []store.CustomFieldValue {
+	values := parseCustomFieldValues(r)
+	for i := range fields {
+		if value, ok := values[fields[i].Def.ID]; ok {
+			fields[i].Value = value
+		}
+	}
+	return fields
 }
 
 func deviceInputFromRequest(r *http.Request) (store.DeviceInput, map[string]string, error) {
