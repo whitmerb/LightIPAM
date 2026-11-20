@@ -10,6 +10,12 @@ migration, requires a major-version bump.
 
 ## [Unreleased]
 
+### Fixed
+
+- CLI updates preserve unspecified subnet, address and device fields by reading
+  the current writable values before sending a complete API replacement. Explicit
+  empty string flags still clear fields; failed reads prevent writes.
+
 ## [1.2.2] - 2026-11-17
 
 A backward-compatible maintenance release covering identity and request hardening,

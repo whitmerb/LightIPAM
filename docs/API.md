@@ -46,6 +46,13 @@ log and trigger change webhooks just like the web UI.
 Request bodies must contain exactly one JSON object and be at most 1 MiB, including
 whitespace. Unknown fields and malformed or trailing content return `400`.
 
+`PUT` replaces the writable fields of a resource. Send all writable fields to
+preserve their values; omitted optional fields reset to their defaults (for
+example, an omitted device `description` becomes empty). Subnet `cidr` and `name`,
+address `address`, and device `name` remain required on update. Read-only response
+fields such as `id`, `subnet_id` and `address_count` must not be included in the
+request. An unset subnet `vlan` is represented by JSON `null`.
+
 Subnet CIDR updates are rejected when they would exclude existing addresses; move or
 remove those addresses before changing the CIDR.
 
@@ -114,6 +121,19 @@ lightipam-cli devices update <id> --description "..."
 lightipam-cli devices delete <id>
 ```
 
-`create`/`update` send only the field flags you provide, so `update` is a partial
-change. The CLI prints the JSON response and exits non-zero on an API error, printing the
+`create` sends the field flags you provide. For `update`, the CLI first reads the
+resource, preserves its writable fields, overlays your explicit flags, then sends
+a complete `PUT`. Unspecified fields retain their values, including an unset
+VLAN. An explicit empty string, such as `--description ""`, clears that field.
+A failed read or invalid response stops the update before any write.
+
+Subnets imported without a site require an explicit nonempty `--site_id` when
+updating through the CLI. The API maps an empty site to the default site, so the
+CLI stops and asks you to choose a site rather than silently reassigning it.
+
+The read and write are separate requests with no version precondition. A change
+made by another client between them can be overwritten; coordinate concurrent
+updates to the same record. The API's replacement semantics are unchanged.
+
+The CLI prints the JSON response and exits non-zero on an API error, printing the
 error message to stderr — convenient in scripts and pipelines.
