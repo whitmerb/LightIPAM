@@ -230,6 +230,9 @@ func parseFields(label string, args, strFields, intFields []string) (map[string]
 	strVals := map[string]*string{}
 	for _, f := range strFields {
 		strVals[f] = fs.String(f, "", "")
+		if alias := strings.ReplaceAll(f, "_", "-"); alias != f {
+			fs.StringVar(strVals[f], alias, "", "")
+		}
 	}
 	intVals := map[string]*int{}
 	for _, f := range intFields {
@@ -242,7 +245,7 @@ func parseFields(label string, args, strFields, intFields []string) (map[string]
 	set := map[string]bool{}
 	fs.Visit(func(f *flag.Flag) { set[f.Name] = true })
 	for name, v := range strVals {
-		if set[name] {
+		if set[name] || set[strings.ReplaceAll(name, "_", "-")] {
 			body[name] = *v
 		}
 	}

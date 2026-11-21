@@ -115,5 +115,7 @@ lightipam-cli devices delete <id>
 ```
 
 `create`/`update` send only the field flags you provide, so `update` is a partial
-change. The CLI prints the JSON response and exits non-zero on an API error, printing the
+change. Subnet `--site-id` and address `--device-id` also accept the legacy
+`--site_id` and `--device_id` spellings; if repeated, the last value wins. The CLI
+prints the JSON response and exits non-zero on an API error, printing the
 error message to stderr — convenient in scripts and pipelines.
