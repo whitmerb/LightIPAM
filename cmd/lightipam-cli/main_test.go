@@ -43,6 +43,32 @@ func TestParseFields(t *testing.T) {
 	})
 }
 
+func TestParseFieldsIDFlagAliases(t *testing.T) {
+	for _, tc := range []struct {
+		name, field string
+		args        []string
+		want        string
+	}{
+		{"site hyphen", "site_id", []string{"--site-id", "site-1"}, "site-1"},
+		{"site underscore", "site_id", []string{"--site_id", "site-1"}, "site-1"},
+		{"device hyphen", "device_id", []string{"--device-id", "device-1"}, "device-1"},
+		{"device underscore", "device_id", []string{"--device_id", "device-1"}, "device-1"},
+		{"empty value", "site_id", []string{"--site-id", ""}, ""},
+		{"last alias wins", "device_id", []string{"--device-id", "first", "--device_id", "last"}, "last"},
+		{"last hyphen wins", "device_id", []string{"--device_id", "first", "--device-id", "last"}, "last"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			body, err := parseFields("test", tc.args, []string{tc.field}, nil)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if want := map[string]any{tc.field: tc.want}; !reflect.DeepEqual(body, want) {
+				t.Fatalf("body = %#v, want %#v", body, want)
+			}
+		})
+	}
+}
+
 func TestAPIErrorMessage(t *testing.T) {
 	if got := apiErrorMessage([]byte(`{"error":"nope"}`)); got != "nope" {
 		t.Fatalf("apiErrorMessage = %q", got)

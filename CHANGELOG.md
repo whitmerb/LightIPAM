@@ -10,6 +10,11 @@ migration, requires a major-version bump.
 
 ## [Unreleased]
 
+### Fixed
+
+- CLI subnet and address commands accept the documented `--site-id` and
+  `--device-id` flags, while retaining the underscore spellings.
+
 ## [1.2.2] - 2026-11-17
 
 A backward-compatible maintenance release covering identity and request hardening,
