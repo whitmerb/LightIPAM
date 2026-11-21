@@ -79,6 +79,8 @@ Implemented controls:
   first-login password rotation).
 - Argon2id password hashing.
 - TOTP MFA with one-time recovery codes; WebAuthn is not implemented.
+- Local password login stops without issuing a session if the MFA enrollment
+  lookup fails; retry once the database problem is resolved.
 - MFA recovery codes are single-use, including concurrent verification attempts.
 - Role-based access control.
 - Immutable audit log for login, config, scan, and IPAM mutations.

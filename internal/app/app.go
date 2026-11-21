@@ -1142,6 +1142,8 @@ func (a *App) loginSubmit(w http.ResponseWriter, r *http.Request) {
 	// code. No session is established until the code verifies.
 	if enabled, err := a.store.TOTPEnabled(r.Context(), user.ID); err != nil {
 		a.logger.Error("totp enabled check", "error", err)
+		a.renderLoginError(w, r, "Unable to start two-factor verification. Please try again.")
+		return
 	} else if enabled {
 		if a.startMFAChallenge(w, r, user.ID) {
 			http.Redirect(w, r, "/login/mfa", http.StatusSeeOther)

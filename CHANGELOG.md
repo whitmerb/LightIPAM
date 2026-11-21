@@ -10,6 +10,11 @@ migration, requires a major-version bump.
 
 ## [Unreleased]
 
+### Fixed
+
+- Local password login fails closed when the MFA enrollment lookup errors,
+  preventing a database failure from bypassing the second factor.
+
 ## [1.2.2] - 2026-11-17
 
 A backward-compatible maintenance release covering identity and request hardening,
