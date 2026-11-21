@@ -31,9 +31,12 @@ binary that consumes it.
 **hash** of each token — never the plaintext. A token is a high-entropy random string
 (`lipam_<random>`), so a fast cryptographic hash (`auth.HashToken`), not a slow password
 KDF, is the correct at-rest form: non-reversible and supporting an indexed equality
-lookup. The plaintext is shown **once** at creation. Tokens are self-service on the
-**Account** page (any signed-in user mints/revokes their own); a token inherits its
-owner's role, so a viewer's token is read-only. `AuthenticateAPIToken` resolves a
+lookup. The plaintext is shown **once** at creation. On the **Account** page, only
+admins may mint tokens for themselves; every role may revoke its own tokens.
+Viewer issuance was restricted during the v1.2.1 security hardening (see
+[Security model](../SECURITY.md#rbac-scope)). Existing tokens inherit their
+owner's current role, so a viewer's token is read-only. There is no admin UI to
+mint a token for another user. `AuthenticateAPIToken` resolves a
 presented hash to the owning user and refreshes `last_used_at` in one statement.
 
 ### JSON API (`/api/v1`)
@@ -70,7 +73,7 @@ end-to-end against the running app. See `docs/API.md`.
 
 ## Consequences
 
-- Light IPAM is now scriptable: an operator mints a token on the Account page and uses
+- Light IPAM is now scriptable: an admin mints a token on the Account page and uses
   `lightipam-cli` (or any HTTP client) to manage subnets, addresses, and devices. The
   same admin/viewer roles, validation, audit log, and change webhooks apply to API
   traffic as to the UI.
